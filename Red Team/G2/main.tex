@@ -1,0 +1,604 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue}
+\usepackage[table]{xcolor}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{sectsty}
+\sectionfont{\large\bfseries}
+\subsectionfont{\normalsize\bfseries}
+\usepackage{tocloft}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\usepackage{parskip}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\usepackage{fancyhdr}
+
+\begin{document}
+
+\pagestyle{fancy}
+
+\fancyhead[L]{Vulnerability Report}
+\fancyhead[R]{May 23, 2025}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\Huge\bfseries Vulnerability Report\par}
+    \vspace{1cm}
+    {\Large Object: Group2\par}
+    {\Large Date: May 23, 2025\par}
+    \vspace{0.5cm}
+    {\large\bfseries CONFIDENTIAL INFORMATION\par}
+    \vspace{2cm}
+    {\large Conducted by: \\ Bernardo Walker Leichtweis \\ Enzzo Machado Silvino \\ Cassio Vieceli Filho\par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+\section{Executive Summary}
+Over a period of 2 days, a penetration test (\textit{Gray Box}) was conducted on the internal infrastructure of \textbf{Group2}, focusing on the assets \texttt{192.168.1.50} and \texttt{192.168.1.34}. The test, carried out by Bernardo W. Leichtweis, Enzzo M. Silvino, and Cassio V. Filho, used credentials of a user with minimal privileges (\texttt{cebolinha:c3b0l1nh4}) and followed the \textbf{PTES} methodology.
+
+The primary objective was to identify exploitable vulnerabilities that pose a risk to network security. A total of \textbf{nine vulnerabilities} were found, classified as:
+\begin{itemize}
+    \item \textbf{1 Critical}: Weak password policy in \textit{phpMyAdmin}, allowing unauthorized access to the administrative panel.
+    \item \textbf{1 High}: Broken access control, exposing credentials in configuration files.
+    \item \textbf{1 Medium}: Lack of protection against brute force attacks on \textit{SSH}.
+    \item \textbf{6 Low/Informational}: Exposure of service versions and information in \texttt{robots.txt}.
+\end{itemize}
+
+Immediate remediation of critical and high-severity vulnerabilities is recommended, with a focus on strengthening authentication policies and permission management.
+
+\section{Introduction}
+This report presents the results of the security assessment on the hosts \texttt{192.168.1.50} and \texttt{192.168.1.34} of Group2. The test, conducted in \textit{Gray Box} mode with test credentials (\texttt{cebolinha:c3b0l1nh4}), aimed to identify vulnerabilities that compromise the confidentiality, integrity, or availability of the systems.
+
+\subsection{Objective}
+To identify vulnerabilities in the specified systems, provide practical recommendations to mitigate risks, and improve Group2's security posture.
+
+\subsection{Methodology}
+The assessment followed the \textbf{PTES} standard, complemented by the \textbf{OWASP Top 10}, and was structured in seven phases:
+\begin{itemize}
+    \item \textbf{Pre-Engagement Interactions}: Definition of scope and rules.
+    \item \textbf{Intelligence Gathering}: Scanning with \texttt{nmap}.
+    \item \textbf{Threat Modeling}: Analysis of services (\textit{SSH}, \textit{nginx}, \textit{MySQL}).
+    \item \textbf{Vulnerability Analysis}: Manual and automated checks.
+    \item \textbf{Exploitability}: Validation of vulnerabilities.
+    \item \textbf{Post-Exploitation}: Impact analysis.
+    \item \textbf{Reporting}: Detailed documentation.
+\end{itemize}
+
+Tools such as \texttt{nmap}, \texttt{Burp Suite}, \texttt{Hydra}, and \texttt{Nessus} were used, complemented by manual verifications.
+
+\section{Test Overview}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{lc}
+        \toprule
+        \rowcolor{gray!20} \textbf{Category} & \textbf{Quantity} \\
+        \midrule
+        Total Unique Vulnerabilities & 9 \\
+        Critical & 1 \\
+        High & 1 \\
+        Medium & 1 \\
+        Low & 5 \\
+        Informational & 1 \\ \hline
+        Zero-Day & 0 \\
+        Easily Exploitable & 2 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Project Scope}
+\begin{enumerate}
+    \item \texttt{192.168.1.50}
+    \item \texttt{192.168.1.34}
+\end{enumerate}
+
+\section{Enumeration}
+Active services were identified using \texttt{nmap} (\texttt{nmap -sV -A -Pn -p- -T4 <host>}):
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{lll}
+        \toprule
+        \rowcolor{gray!20} \textbf{Host} & \textbf{Port/Service} & \textbf{Details} \\
+        \midrule
+        \texttt{192.168.1.50} 
+            & 22/tcp: ssh & OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 \\
+            & 25/tcp: smtp & Postfix smtpd \\
+            & 80/tcp: http & nginx 1.27.5 \\
+            & 3306/tcp: mysql & MySQL 5.7.44 \\
+            & 8080/tcp: http & Apache httpd 2.4.62 \\
+            & 8180/tcp: http & Apache httpd 2.4.62 \\ \hline
+        \texttt{192.168.1.34} 
+            & 22/tcp: ssh & OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 \\
+            & 139/tcp: netbios-ssn & Samba smbd 4 \\
+            & 445/tcp: netbios-ssn & Samba smbd 4 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Vulnerabilities}
+
+\subsection*{\color{BrickRed}Critical}
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Weak Password Policy} \\
+    Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+\end{itemize}
+
+\subsection*{\color{Red}High}
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Broken Access Control} \\
+    Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+\end{itemize}
+
+\subsection*{\color{Orange}Medium}
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Lack of Brute Force Protection} \\
+    Total affected assets: 2 -- Remediated: 0 -- Retested: 0 -- Not remediated: 2
+\end{itemize}
+
+\subsection*{\color{NavyBlue}Low}
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Server Discloses Software Version (SSH)} \\
+    Total affected assets: 2 -- Remediated: 0 -- Retested: 0 -- Not remediated: 2
+    \item \textbf{[NOT REMEDIATED] Server Discloses Software Version (HTTP - 80)} \\
+    Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+    \item \textbf{[NOT REMEDIATED] Server Discloses Software Version (HTTP - 8080)} \\
+    Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+    \item \textbf{[NOT REMEDIATED] Server Discloses Software Version (HTTP - 8180)} \\
+    Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+    \item \textbf{[NOT REMEDIATED] Server Discloses Software Version (MySQL)} \\
+    Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+\end{itemize}
+
+\subsection*{\color{Periwinkle}Informational}
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Information Exposed in Robots.txt} \\
+    Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+\end{itemize}
+
+\clearpage
+
+\section{Identified Vulnerabilities}
+
+\subsection{Weak Password Policy}
+\textbf{Severity:} \textcolor{BrickRed}{Critical} \\
+\textbf{Affected Asset:} \texttt{192.168.1.50} \\
+\textbf{CVSS v3.1:} 9.8 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H) \\
+\textbf{Reference:} CWE-521: Weak Password Requirements
+
+\textbf{Description:}  
+The \texttt{phpMyAdmin} service, publicly accessible on port \texttt{8180}, uses extremely weak credentials (\texttt{root:password}). This configuration allows any attacker, without prior knowledge of the system, to access the database administrative panel, compromising the confidentiality, integrity, and availability of stored data. The public exposure of the service amplifies the risk, making it a critical attack vector.
+
+\textbf{Attack Scenario:}  
+A remote attacker, using scanning tools like \texttt{nmap}, identifies the \texttt{phpMyAdmin} service on port \texttt{8180}. By attempting default or widely known credentials, such as \texttt{root:password}, the attacker gains immediate access to the administrative panel. With this, they can:  
+\begin{itemize}
+    \item Exfiltrate sensitive data, such as customer information or stored credentials.  
+    \item Modify or delete database tables, causing service disruptions.  
+    \item Inject malicious code (e.g., stored XSS) to compromise other connected systems.  
+\end{itemize}
+This access can serve as an entry point for lateral movements within the network, potentially compromising the entire infrastructure.
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Immediate credential change:} Replace \texttt{root:password} with a strong password (minimum 12 characters, including uppercase, lowercase, numbers, and symbols).  
+    \item \textbf{Access restriction:} Configure firewall rules (\texttt{iptables}) or a VPN to limit access to \texttt{phpMyAdmin} to authorized IP addresses.  
+    \item \textbf{Multi-factor authentication (MFA):} Implement MFA using solutions like \texttt{Google Authenticator} or \texttt{Duo Security} for administrative systems.  
+    \item \textbf{Disable in production:} Disable \texttt{phpMyAdmin} on internet-exposed servers, if possible.  
+    \item \textbf{Regular auditing:} Establish routines to review and update credentials for critical systems.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Access \texttt{http://192.168.1.50:8180} via a browser or \texttt{curl}.  
+    \item Enter the credentials \texttt{root:password} in the \texttt{phpMyAdmin} login form.  
+    \item Upon successful authentication, gain full access to the panel, allowing viewing, editing, and deleting databases.  
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{docker2.png}
+    \caption{Unauthorized access to phpMyAdmin using default credentials.}
+\end{figure}
+
+\clearpage
+
+\subsection{Broken Access Control}
+\textbf{Severity:} \textcolor{Red}{High} \\
+\textbf{Affected Asset:} \texttt{192.168.1.50} \\
+\textbf{CVSS v3.1:} 7.8 (AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N) \\
+\textbf{References:} OWASP A05:2021 - Broken Access Control, CWE-269: Improper Privilege Management
+
+\textbf{Description:}  
+The test user \texttt{cebolinha}, with minimal privileges, has read access to sensitive configuration files (\texttt{docker-compose.yml}). These files contain plaintext credentials, including \texttt{root:password}, which allow access to \texttt{phpMyAdmin} on port \texttt{8180}. This access control failure violates the principle of least privilege, exposing critical information to unauthorized users.
+
+\textbf{Attack Scenario:}  
+An attacker with access to the \texttt{cebolinha:c3b0l1nh4} credentials, obtained through social engineering, account compromise, or password reuse, can:  
+\begin{itemize}
+    \item List directories in \texttt{/home/ExpGrupo2} using \texttt{ls -la}.  
+    \item Read the \texttt{docker-compose.yml} file in the \texttt{wordpress} directory, extracting the \texttt{root:password} credentials.  
+    \item Use these credentials to access \texttt{phpMyAdmin} on port \texttt{8180}, gaining full control over the database.  
+    \item Escalate privileges within the network by exploiting other services or connected systems.  
+\end{itemize}
+This scenario is particularly dangerous in multi-user environments, where a compromised account can lead to a large-scale breach.
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Permission review:} Restrict access to the \texttt{/home/ExpGrupo2/*} directories to administrative users only, using \texttt{chmod 600 docker-compose.yml} and \texttt{chown root:root}.  
+    \item \textbf{Secret management:} Store credentials in secure tools like \texttt{HashiCorp Vault} or \texttt{AWS Secrets Manager}, avoiding plaintext.  
+    \item \textbf{Least privilege:} Audit and limit permissions for all users, ensuring minimal-privilege accounts cannot access sensitive data.  
+    \item \textbf{File encryption:} Protect sensitive files with encryption at rest, requiring additional authentication for access.  
+    \item \textbf{Monitoring:} Configure logs to detect unauthorized access to critical files.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Authenticate on the host \texttt{192.168.1.50} via \texttt{SSH} with \texttt{cebolinha:c3b0l1nh4}.  
+    \item Run \texttt{ls -la /home/ExpGrupo2/wordpress} to list files.  
+    \item Read the file with \texttt{cat /home/ExpGrupo2/wordpress/docker-compose.yml}, identifying \texttt{root:password}.  
+    \item Access \texttt{http://192.168.1.50:8180} and authenticate in \texttt{phpMyAdmin} with the extracted credentials.  
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{docker1.png}
+    \caption{Contents of the docker-compose.yml file with exposed credentials.}
+\end{figure}
+
+\clearpage
+
+\subsection{Lack of Brute Force Protection}
+\textbf{Severity:} \textcolor{Orange}{Medium} \\
+\textbf{Affected Assets:} \texttt{192.168.1.50}, \texttt{192.168.1.34} \\
+\textbf{CVSS v3.1:} 6.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N) \\
+\textbf{References:} CWE-307: Improper Restriction of Excessive Authentication Attempts
+
+\textbf{Description:}  
+The \texttt{OpenSSH} services on hosts \texttt{192.168.1.50} and \texttt{192.168.1.34} lack mechanisms to protect against brute force attacks, allowing unlimited authentication attempts. This absence of controls, such as IP blocking or progressive delays, facilitates automated attacks that test username and password combinations until valid credentials are found.
+
+\textbf{Attack Scenario:}  
+A remote attacker identifies the \texttt{SSH} service on port \texttt{22} using \texttt{nmap}. Using tools like \texttt{Hydra} or \texttt{Medusa}, they perform a brute force attack, testing common password lists against known accounts (e.g., \texttt{root}, \texttt{admin}, \texttt{cebolinha}). Without attempt limitations, the attacker can:  
+\begin{itemize}
+    \item Compromise accounts with weak passwords, gaining system access.  
+    \item Escalate privileges if the compromised account has elevated permissions.  
+    \item Establish persistence in the network by installing backdoors or exfiltrating data.  
+\end{itemize}
+This risk is heightened in internet-exposed networks, where automated bots frequently scan for \texttt{SSH} services.
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Implement \texttt{fail2ban}:} Configure \texttt{fail2ban} to block IPs after 5 failed login attempts within 10 minutes.  
+    \item \textbf{Progressive delays:} Adjust \texttt{sshd\_config} to introduce delays after authentication failures (e.g., \texttt{LoginGraceTime 30}).  
+    \item \textbf{Multi-factor authentication:} Enable MFA for \texttt{SSH} using \texttt{Google Authenticator} or certificate-based SSH keys.  
+    \item \textbf{Strong passwords:} Enforce complex password policies (minimum 12 characters, with diverse characters).  
+    \item \textbf{Access restriction:} Limit \texttt{SSH} connections to trusted IPs via \texttt{iptables} or \texttt{tcpwrappers}.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Perform a brute force attack with:\newline \texttt{hydra -l cebolinha -P /usr/share/wordlists/rockyou.txt ssh://192.168.1.50}.  
+    \item Observe that the system allows hundreds of attempts without blocking or delay.  
+    \item Demonstration: Successful authentication with \texttt{cebolinha:c3b0l1nh4} after multiple attempts.  
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{hydra1.png}
+    \caption{Brute force attack with Hydra on the SSH service.}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{hydra2.png}
+    \caption{Successful brute force attack.}
+\end{figure}
+
+\clearpage
+
+\subsection{Software Version Exposure}
+\textbf{Severity:} \textcolor{NavyBlue}{Low} \\
+\textbf{Affected Assets:} \texttt{192.168.1.50}, \texttt{192.168.1.34} \\
+\textbf{CVSS v3.1:} 3.7 (AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N) \\
+\textbf{References:} CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
+
+\subsubsection{SSH (Port 22)}
+\textbf{Description:}  
+The \texttt{OpenSSH} services on hosts \texttt{192.168.1.50} and \texttt{192.168.1.34} reveal the exact version (\texttt{OpenSSH 9.6p1 Ubuntu 3ubuntu13.11}) in the connection banner. This information allows attackers to identify public vulnerabilities associated with the specific version, facilitating targeted attacks.
+
+\textbf{Attack Scenario:}  
+An attacker uses \texttt{nmap} or \texttt{netcat} to capture the \texttt{SSH} banner (\texttt{SSH-2.0-OpenSSH\_9.6p1 Ubuntu-3ubuntu13.11}). With the version identified, they search vulnerability databases (e.g., CVE, Exploit-DB) for known issues, such as buffer overflows or authentication flaws. If an exploitable vulnerability exists, the attacker can:  
+\begin{itemize}
+    \item Compromise the \texttt{SSH} service, gaining system access.  
+    \item Execute remote code or escalate privileges.  
+\end{itemize}
+This risk is higher if the \texttt{OpenSSH} version is outdated.
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Hide banner:} Configure \texttt{DebianBanner no} in the \texttt{/etc/ssh/sshd\_config} file and restart the service (\texttt{systemctl restart sshd}).  
+    \item \textbf{Regular updates:} Keep \texttt{OpenSSH} updated with the latest security patches.  
+    \item \textbf{Monitoring:} Log \texttt{SSH} connection attempts to detect malicious scans.  
+    \item \textbf{Firewall:} Restrict access to port \texttt{22} to trusted IPs.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Run \texttt{nc 192.168.1.50 22} to capture the \texttt{SSH} banner.  
+    \item Observe the response: \texttt{SSH-2.0-OpenSSH\_9.6p1 Ubuntu-3ubuntu13.11}.  
+    \item Search for vulnerabilities associated with the version in \texttt{Exploit-DB}.  
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{ssh-banner1.png}
+    \caption{SSH banner revealing the OpenSSH version.}
+\end{figure}
+
+\subsubsection{HTTP (Port 80 - nginx)}
+\textbf{Description:}  
+The \texttt{nginx} server on port \texttt{80} of host \texttt{192.168.1.50} exposes its version (\texttt{nginx/1.27.5}) in the HTTP \texttt{Server} header. This information can be used by attackers to identify known vulnerabilities associated with the specific version.
+
+\textbf{Attack Scenario:}  
+An attacker uses \texttt{curl -I http://192.168.1.50} to capture the \texttt{Server: nginx/1.27.5} header. With the version identified, they query vulnerability databases (e.g., CVE) for public exploits, such as configuration flaws or denial-of-service vulnerabilities. The attacker can:  
+\begin{itemize}
+    \item Exploit a known flaw to compromise the web server.  
+    \item Perform additional reconnaissance based on the identified version.  
+\end{itemize}
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Hide version:} Add \texttt{server\_tokens off;} to the \texttt{/etc/nginx/nginx.conf} file and restart the service (\texttt{systemctl restart nginx}).  
+    \item \textbf{Updates:} Keep \texttt{nginx} on the latest version.  
+    \item \textbf{Secure headers:} Configure additional security headers, such as \texttt{X-Content-Type-Options: nosniff}.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Run \texttt{curl -I http://192.168.1.50}.  
+    \item Observe the \texttt{Server: nginx/1.27.5} header.  
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{nginxv1.png}
+    \caption{HTTP header exposing the nginx version.}
+\end{figure}
+
+\clearpage
+
+\subsubsection{HTTP (Port 8080 - WordPress)}
+\textbf{Description:}  
+The \texttt{WordPress} application on port \texttt{8080} of host \texttt{192.168.1.50} exposes its version (\texttt{WordPress 5.8.3}) via the \texttt{generator} meta tag and files like \texttt{readme.html}. Additionally, HTTP headers reveal the versions of \texttt{Apache} (\texttt{2.4.62}) and \texttt{PHP} (\texttt{8.2.28}), enabling detailed fingerprinting.
+
+\textbf{Attack Scenario:}  
+An attacker accesses \texttt{http://192.168.1.50:8080}, inspects the source code, and identifies \texttt{<meta name="generator" content="WordPress 5.8.3" />}. They also capture headers with \texttt{curl -I}, obtaining \texttt{Server: Apache/2.4.62} and \texttt{X-Powered-By: PHP/8.2.28}. With this information, the attacker can:  
+\begin{itemize}
+    \item Search for exploits for known vulnerabilities in \texttt{WordPress 5.8.3}, such as outdated plugins.  
+    \item Exploit flaws in \texttt{Apache} or \texttt{PHP} to execute remote code or access sensitive files.  
+    \item Combine this information with other vulnerabilities (e.g., brute force) to gain full access.  
+\end{itemize}
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Hide versions:} Remove the \texttt{generator} meta tag in the \texttt{WordPress} theme (edit \texttt{functions.php}) and delete files like \texttt{readme.html}.  
+    \item \textbf{Apache configuration:} Set \texttt{ServerSignature Off} and \texttt{ServerTokens Prod} in \texttt{httpd.conf}.  
+    \item \textbf{PHP configuration:} Adjust \texttt{expose\_php = Off} in \texttt{php.ini}.  
+    \item \textbf{Updates:} Keep \texttt{WordPress}, \texttt{Apache}, and \texttt{PHP} updated.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Access \texttt{http://192.168.1.50:8080} and inspect the source code to identify \texttt{<meta name="generator" content="WordPress 5.8.3" />}.  
+    \item Run \texttt{curl -I http://192.168.1.50:8080} to capture \texttt{Server: Apache/2.4.62} and \texttt{X-Powered-By: PHP/8.2.28}.  
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{wpv2.png}
+    \caption{Meta tag exposing the WordPress version.}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{wpv1.png}
+    \caption{HTTP headers exposing Apache and PHP versions.}
+\end{figure}
+
+\clearpage
+
+\subsubsection{HTTP (Port 8180 - phpMyAdmin)}
+\textbf{Description:}  
+The \texttt{phpMyAdmin} service on port \texttt{8180} of host \texttt{192.168.1.50} does not directly expose its own version but reveals the versions of \texttt{Apache} (\texttt{2.4.29}) and \texttt{PHP} (\texttt{7.2.24}) in HTTP headers, enabling fingerprinting and identification of known vulnerabilities.
+
+\textbf{Attack Scenario:}  
+An attacker runs \texttt{curl -I http://192.168.1.50:8180/phpmyadmin} and captures \texttt{Server: Apache/2.4.29} and \texttt{X-Powered-By: PHP/7.2.24}. With this information, they search for exploits in \texttt{NVD} or \texttt{Exploit-DB} for specific flaws in these versions, such as remote code execution vulnerabilities in \texttt{PHP} or misconfigurations in \texttt{Apache}. The attacker can:  
+\begin{itemize}
+    \item Exploit a vulnerability to compromise the web server.  
+    \item Combine with the weak password policy to access \texttt{phpMyAdmin}.  
+\end{itemize}
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Hide versions:} Configure \texttt{ServerTokens Prod} and \texttt{ServerSignature Off} in \texttt{httpd.conf} and \texttt{expose\_php = Off} in \texttt{php.ini}.  
+    \item \textbf{Access restriction:} Limit \texttt{phpMyAdmin} to trusted IPs via \texttt{.htaccess} or firewall.  
+    \item \textbf{Updates:} Keep \texttt{Apache} and \texttt{PHP} updated.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Run \texttt{curl -I http://192.168.1.50:8180/phpmyadmin}.  
+    \item Observe headers \texttt{Server: Apache/2.4.29} and \texttt{X-Powered-By: PHP/7.2.24}.  
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{phpmyadminv1.png}
+    \caption{HTTP headers exposing Apache and PHP versions.}
+\end{figure}
+
+\clearpage
+
+\subsubsection{MySQL (Port 3306)}
+\textbf{Description:}  
+The \texttt{MySQL} service on port \texttt{3306} of host \texttt{192.168.1.50} reveals its version (\texttt{MySQL 5.7.44}) during the initial TCP handshake. This exposure allows attackers to identify specific vulnerabilities associated with the database version.
+
+\textbf{Attack Scenario:}  
+An attacker uses \texttt{nmap} with the \texttt{mysql-info} script to capture the \texttt{MySQL 5.7.44} version during the handshake. With this information, they search \texttt{NVD} for related CVEs, such as authentication or privilege escalation flaws. The attacker can:  
+\begin{itemize}
+    \item Exploit a vulnerability to access the database without credentials.  
+    \item Combine with the weak password policy to gain full control.  
+\end{itemize}
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Hide version:} Configure \texttt{MySQL} to not reveal the version in the handshake (requires advanced adjustments or proxies).  
+    \item \textbf{Access restriction:} Limit port \texttt{3306} to trusted IPs via \texttt{iptables}.  
+    \item \textbf{Updates:} Keep \texttt{MySQL} on the latest version.  
+    \item \textbf{Monitoring:} Log \texttt{MySQL} connection attempts in logs.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Run \texttt{nmap -sV --script=mysql-info -p 3306 192.168.1.50}.  
+    \item Observe the response containing \texttt{MySQL 5.7.44}.  
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{mysqlv1.png}
+    \caption{MySQL handshake exposing the service version.}
+\end{figure}
+
+\clearpage
+
+\subsection{Information Exposed in robots.txt}
+\textbf{Severity:} \textcolor{Periwinkle}{Informational} \\
+\textbf{Affected Asset:} \texttt{192.168.1.50:8080} \\
+\textbf{CVSS v3.1:} 0 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N) \\
+\textbf{References:} CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
+
+\textbf{Description:}  
+The \texttt{robots.txt} file, publicly accessible on port \texttt{8080}, lists directories and files that the administrator wishes to hide from search engine crawlers. While not a direct vulnerability, the exposure of these paths can reveal sensitive areas of the site, such as administrative panels or configuration files, which attackers can exploit in conjunction with other flaws.
+
+\textbf{Attack Scenario:}  
+An attacker accesses \texttt{http://192.168.1.50:8080/robots.txt} and identifies directories like \texttt{/admin} or \texttt{/config}. Although these paths may be protected, the exposure facilitates mapping of the site’s structure. The attacker can:  
+\begin{itemize}
+    \item Test the listed directories for unprotected entry points.  
+    \item Combine with other vulnerabilities, such as brute force or broken access control, to access restricted areas.  
+    \item Perform social engineering attacks based on the obtained information.  
+\end{itemize}
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Review \texttt{robots.txt}:} Remove references to sensitive directories or files, keeping only generic entries.  
+    \item \textbf{Access control:} Protect listed paths with robust authentication (e.g., \texttt{.htaccess} or application-level authentication).  
+    \item \textbf{Monitoring:} Configure logs to detect frequent access to \texttt{robots.txt}, indicating malicious scans.  
+    \item \textbf{Obfuscation:} Consider removing \texttt{robots.txt} if not essential or use security tools to block malicious crawlers.  
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Access \texttt{http://192.168.1.50:8080/robots.txt} via a browser or \texttt{curl}.  
+    \item Observe the returned content.
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{robots.png}
+    \caption{Contents of the robots.txt file revealing directories.}
+\end{figure}
+
+\section{Conclusion}
+
+The penetration test conducted on Group2’s infrastructure revealed a set of vulnerabilities that significantly compromise the security of hosts \texttt{192.168.1.50} and \texttt{192.168.1.34}. The critical vulnerability identified, related to the weak password policy in \texttt{phpMyAdmin}, poses an immediate threat, allowing unauthorized access to the database administrative panel. This flaw can result in the exfiltration of sensitive data, manipulation of critical information, or complete service disruption, directly impacting the confidentiality, integrity, and availability of the systems.
+
+Additionally, high and medium-severity vulnerabilities, such as broken access control and the lack of brute force protection on \texttt{SSH}, expose the infrastructure to significant risks, including account compromise and privilege escalation. Low-severity issues, such as software version exposure, while less urgent, facilitate attacker enumeration and can be combined with other vulnerabilities to amplify an attack’s impact. The exposure of information in \texttt{robots.txt}, classified as informational, underscores the need to review configurations to prevent the disclosure of sensitive data.
+
+\section{Appendices}
+
+\subsection{General Definitions}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{lp{8cm}}
+        \toprule
+        \rowcolor{gray!20} \textbf{Term} & \textbf{Description} \\
+        \midrule
+        Total Unique Vulnerabilities & Distinct vulnerabilities identified within the scope. \\ \hline
+        Zero-Day Vulnerability & Flaw unknown to the vendor, exploitable before patches are available. \\ \hline
+        Easily Exploitable Vulnerability & Flaws detectable by automated tools or with public exploits. \\ \hline
+        Critical Vulnerability & High impact on confidentiality, integrity, or availability. \\ \hline
+        High Vulnerability & Requires immediate attention due to potential impact. \\ \hline
+        Medium Vulnerability & Less urgent but can cause serious issues. \\ \hline
+        Low Vulnerability & Not imminent but should be mitigated in the long term. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Definitions of terms used in the report.}
+\end{table}
+
+\clearpage
+
+\subsection{Severity Levels}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{lp{10cm}}
+        \toprule
+        \rowcolor{gray!20} \textbf{Level} & \textbf{Description} \\
+        \midrule
+        \textcolor{BrickRed}{Critical} & CVSS 9.0–10.0: High probability and impact. \\
+        \textcolor{Red}{High} & CVSS 7.0–8.9: Medium to high probability and impact. \\
+        \textcolor{Orange}{Medium} & CVSS 4.0–6.9: Low to medium probability or impact. \\
+        \textcolor{NavyBlue}{Low} & CVSS 0.1–3.9: Low probability and impact. \\
+        \textcolor{Periwinkle}{Informational} & No direct impact but provides useful information. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Severity levels of vulnerabilities.}
+\end{table}
+
+\subsection{Vulnerability Mapping by Asset}
+\textbf{Asset: \texttt{192.168.1.50}}
+\begin{itemize}
+    \item \textcolor{BrickRed}{Critical}: Weak password policy (\texttt{phpMyAdmin}).
+    \item \textcolor{Red}{High}: Broken access control (\texttt{/home/ExpGrupo2/}).
+    \item \textcolor{Orange}{Medium}: Lack of brute force protection (\texttt{SSH}).
+    \item \textcolor{NavyBlue}{Low}: Version exposure (\texttt{OpenSSH}, \texttt{nginx}, \texttt{MySQL}, \texttt{Apache}, \texttt{PHP}).
+    \item \textcolor{Periwinkle}{Informational}: Exposure in \texttt{robots.txt}.
+\end{itemize}
+
+\textbf{Asset: \texttt{192.168.1.34}}
+\begin{itemize}
+    \item \textcolor{Orange}{Medium}: Lack of brute force protection (\texttt{SSH}).
+    \item \textcolor{NavyBlue}{Low}: Version exposure (\texttt{OpenSSH}).
+\end{itemize}
+
+\subsection{Tools Used}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{ll}
+        \toprule
+        \rowcolor{gray!20} \textbf{Purpose} & \textbf{Tool} \\
+        \midrule
+        Network mapping and scanning & Nmap \\
+        SMTP server testing & Swaks \\
+        Communication and port testing & Netcat \\
+        Brute force attacks & Hydra \\
+        Vulnerability analysis & Nessus \\
+        WordPress vulnerabilities & WPScan \\
+        Web vulnerability analysis & Nikto, Gobuster, Burp Suite, XSStrike, SQLMap \\
+        Exploitation and post-exploitation & Metasploit \\
+        Privilege escalation & LinPEAS \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\end{document}

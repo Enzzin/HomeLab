@@ -1,0 +1,1517 @@
+\documentclass[12pt]{report}
+\usepackage[a4paper, margin=2.5cm]{geometry}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{tocloft}
+\usepackage{fancyhdr}
+\usepackage[colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+\usepackage{listings}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\definecolor{codestr}{rgb}{0.2,0.5,0.2}
+\definecolor{codekw}{rgb}{0.0,0.0,0.5}
+
+\lstset{
+backgroundcolor=\color{codebg},
+basicstyle=\ttfamily\small,
+breaklines=true,
+captionpos=b,
+commentstyle=\color{codestr},
+keywordstyle=\color{codekw},
+stringstyle=\color{codestr},
+frame=single,
+numbers=left,
+numberstyle=\tiny,
+showspaces=false,
+showstringspaces=false,
+tabsize=4
+}
+
+% Table of Contents Settings
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftsecfont}{\bfseries}
+\renewcommand{\cftchappagefont}{\bfseries}
+\renewcommand{\cftsecpagefont}{\bfseries}
+
+% Header Settings
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\fancyhead[L]{Final Report - Blue Team}
+
+\titleformat{\chapter}{\normalfont\LARGE\bfseries}{\thechapter.}{1em}{}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+
+% Cover Page Data
+\newcommand{\institution}{PUCPR - Pontifical Catholic University of Paraná}
+\newcommand{\authorname}{Bernardo Walker Leichtweis \\ Cassio Vieceli Filho \\ Enzzo Machado Silvino}
+\newcommand{\location}{Curitiba - PR}
+\newcommand{\dateinfo}{May 2025}
+\newcommand{\titleinfo}{Blue Team}
+\newcommand{\subtitleinfo}{Implementation of Network Security Infrastructure}
+
+\begin{document}
+
+% Cover Page
+\begin{titlepage}
+    \centering
+    {\large \institution \par}
+    \vspace{2cm}
+    {\LARGE \textbf{\titleinfo} \par}
+    \vspace{0.5cm}
+    {\Large \subtitleinfo \par}
+    \vspace{3cm}
+    {\large \authorname \par}
+    \vfill
+    {\large \location \par}
+    {\large \dateinfo \par}
+\end{titlepage}
+
+% Table of Contents Page
+\tableofcontents
+\newpage
+
+% Content Start
+\section*{Executive Summary}
+\addcontentsline{toc}{section}{Executive Summary}
+
+This project proposes the implementation of a network security infrastructure structured in three main layers: \textbf{firewall}, \textbf{DMZ (demilitarized zone)}, and \textbf{internal network}. The goal is to ensure the protection of the organization's information based on the pillars of information security - \textit{confidentiality}, \textit{integrity}, \textit{availability}, and \textit{non-repudiation}.
+
+\subsection*{Firewall Layer}
+\addcontentsline{toc}{subsection}{Firewall Layer}
+
+The \textbf{firewall}, based on \textit{pfSense}, will be responsible for filtering and controlling all incoming and outgoing network traffic. For secure remote connections, \textit{WireGuard}, a modern VPN, will be used. Real-time traffic monitoring will be performed with \textit{Snort}, acting as an IDS/IPS to detect and mitigate intrusion attempts and denial-of-service attacks (\textit{DoS/DDoS}).
+
+\subsection*{DMZ - Demilitarized Zone}
+\addcontentsline{toc}{subsection}{DMZ - Demilitarized Zone}
+
+The \textbf{DMZ} will host services aimed at the external public, logically isolated from the internal network to contain potential attack vectors. A web application and a complete email server with \textit{MailCow} will be deployed, integrating SMTP, IMAP, antispam, and antivirus functions, providing secure and auditable communication. This separation ensures that, even in the event of a compromised exposed service, internal assets remain protected.
+
+\subsection*{Internal Network}
+\addcontentsline{toc}{subsection}{Internal Network}
+
+The \textbf{internal network} will house the most critical services, such as:
+
+\begin{itemize}
+    \item \textbf{MySQL}: Database storing critical web application information, with restricted access and encryption at rest for data protection.
+    \item \textbf{SAMBA}: Network file-sharing system with user-based permission control and access auditing to prevent leaks.
+    \item \textbf{Wazuh}: Centralized security monitoring platform, acting as SIEM, XDR, and DLP, using YARA rules for advanced threat detection.
+    \item \textbf{Light LDAP and HashiCorp Vault}: Identity and access management. LDAP authenticates users, while Vault stores and automatically rotates passwords.
+    \item \textbf{Restic}: Automated and encrypted backup tool with periodic scheduling, ensuring information availability and integrity in case of failures or incidents.
+\end{itemize}
+
+\subsection*{Conclusion}
+\addcontentsline{toc}{subsection}{Conclusion}
+
+This architecture ensures a secure, organized, and resilient foundation for operations, reducing risks and ensuring service continuity in compliance with information security best practices.
+
+\newpage
+\section*{Network Topology}
+\addcontentsline{toc}{section}{Network Topology}
+
+The network is structured with the firewall as the central point, connecting the internal network, the DMZ, and external interfaces. The topology is illustrated below.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 2cm,
+    box/.style={rectangle, draw, rounded corners, minimum height=1.7cm, minimum width=3.5cm, align=center, font=\small},
+    arrow/.style={-Stealth, thick}
+]
+
+% Nodes
+\node[box] (fw) {Firewall\\192.168.8.33};
+\node[box, right=of fw] (dmz) {DMZ\\192.168.8.50/28};
+\node[box, right=of dmz] (int) {Internal Network\\192.168.8.34/28};
+\node[box, below=of fw] (ext) {External};
+
+% Connections
+\draw[arrow] (ext) -- (fw);
+\draw[arrow] (fw) -- (dmz);
+\draw[arrow] (dmz) -- (int);
+
+\end{tikzpicture}
+\caption{Network Topology Diagram}
+\label{fig:topology}
+\end{figure}
+
+\subsection*{Machine Descriptions}
+\addcontentsline{toc}{subsection}{Machine Descriptions}
+
+\begin{itemize}
+    \item \textbf{Firewall (pfSense)}: 
+    \begin{itemize}
+        \item Address: 192.168.8.33
+        \item Hostname: ENE48-EP-PUCPR.home.arpa
+        \item Operating System: FreeBSD 14.0-CURRENT
+        \item pfSense Version: 2.7.2-RELEASE
+    \end{itemize}
+    
+    \item \textbf{DMZ}: 
+    \begin{itemize}
+        \item Address: 192.168.8.50/28
+        \item Hostname: ene50-ep-pucpr
+        \item Default Gateway: 192.168.8.49 via eth0
+        \item Distribution: Ubuntu 24.04.2 LTS (Noble)
+        \item Kernel: Linux 6.8.0-57-generic
+    \end{itemize}
+    
+    \item \textbf{Internal Network}: 
+    \begin{itemize}
+        \item Address: 192.168.8.34/28
+        \item Hostname: ene49-ep-pucpr
+        \item Default Gateway: 192.168.8.33 via eth0
+        \item Distribution: Ubuntu 24.04.2 LTS (Noble)
+        \item Kernel: Linux 6.8.0-57-generic
+    \end{itemize}
+\end{itemize}
+
+\newpage
+
+\section*{Apache Web Server}
+\addcontentsline{toc}{section}{Apache Web Server}
+
+The \textbf{Apache} web server is deployed in the DMZ to host the \textit{sitefoda.com} website. This configuration ensures secure access via HTTP and HTTPS, automatically redirecting HTTP traffic to HTTPS. Security headers and directory restrictions have been implemented to protect against common web vulnerabilities. A self-signed SSL certificate and specific permissions are used to enhance security.
+
+\subsection*{Security Directives}
+\addcontentsline{toc}{subsection}{Security Directives}
+
+The following directives are added to \texttt{apache2.conf} to minimize information disclosure and disable unnecessary features:
+
+\begin{lstlisting}[caption={Security Directives in apache2.conf}]
+ServerTokens Prod
+ServerSignature off
+FileETag None
+TraceEnable off
+\end{lstlisting}
+
+\begin{itemize}
+\item \texttt{ServerTokens Prod}: Limits server information in HTTP headers to ``Apache''.
+\item \texttt{ServerSignature off}: Disables server signature on error pages.
+\item \texttt{FileETag None}: Removes ETag headers to prevent inode-based attacks.
+\item \texttt{TraceEnable off}: Disables the TRACE method to prevent cross-site tracing.
+\end{itemize}
+
+\subsection*{Directory Configurations}
+\addcontentsline{toc}{subsection}{Directory Configurations}
+Directory configurations restrict access and disable unnecessary features:
+
+\begin{lstlisting}[caption={Directory Configurations in apache2.conf}]
+<Directory />
+Options FollowSymLinks
+AllowOverride None
+Require all denied
+</Directory>
+
+<Directory /usr/share>
+AllowOverride None
+Require all granted
+</Directory>
+
+<Directory /var/www/>
+Options -Indexes
+AllowOverride None
+Require all granted
+<LimitExcept GET POST HEAD>
+Require all denied
+</LimitExcept>
+</Directory>
+\end{lstlisting}
+
+\begin{itemize}
+\item Root directory (\texttt{/}): Denies all access except for symbolic links.
+\item \texttt{/usr/share}: Grants access to shared resources.
+\item \texttt{/var/www/}: Allows GET, POST, and HEAD methods, disables directory listing, and denies other HTTP methods.
+\end{itemize}
+
+\subsection*{DoS Mitigation}
+\addcontentsline{toc}{subsection}{DoS Mitigation}
+To reduce the risk of denial-of-service (DoS) attacks, the timeout is reduced:
+
+\begin{lstlisting}[caption={Timeout Configuration}]
+Timeout 60
+\end{lstlisting}
+
+This sets the server timeout to 60 seconds, reducing resource exhaustion risks.
+
+\subsection*{Security Configuration}
+\addcontentsline{toc}{subsection}{Security Configuration}
+The file \texttt{/etc/apache2/conf-enabled/security.conf} contains additional security headers and rules:
+
+\begin{lstlisting}[caption={Security Configuration in security.conf}]
+RedirectMatch 404 /.git
+Header set X-Content-Type-Options: "nosniff"
+Header set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "strict-origin"
+Header always append X-Frame-Options SAMEORIGIN
+\end{lstlisting}
+
+\begin{itemize}
+\item \texttt{RedirectMatch 404 /.git}: Prevents access to \texttt{.git} directories.
+\item \texttt{X-Content-Type-Options: "nosniff"}: Prevents MIME type sniffing.
+\item \texttt{X-XSS-Protection}: Enables XSS filtering in browsers.
+\item \texttt{Referrer-Policy: "strict-origin"}: Limits referrer information to the origin.
+\item \texttt{X-Frame-Options SAMEORIGIN}: Prevents clickjacking by restricting framing.
+\end{itemize}
+
+\subsection*{HTTP Virtual Host}
+\addcontentsline{toc}{subsection}{HTTP Virtual Host}
+The file \texttt{/etc/apache2/sites-available/000-default.conf} redirects all HTTP traffic to HTTPS:
+
+\begin{lstlisting}[caption={HTTP Virtual Host Configuration}]
+<VirtualHost *:80>
+ServerName www.sitefoda.com
+ServerAlias sitefoda.com
+Redirect permanent / https://sitefoda.com
+ServerAdmin webmaster@localhost
+DocumentRoot /var/www/html
+ErrorLog ${APACHE_LOG_DIR}/error.log
+CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+\end{lstlisting}
+
+This ensures all traffic is encrypted, redirecting to \texttt{https://sitefoda.com}.
+
+\subsection*{HTTPS Virtual Host}
+\addcontentsline{toc}{subsection}{HTTPS Virtual Host}
+The file \texttt{/etc/apache2/sites-available/ssl.conf} configures the HTTPS virtual host with SSL:
+
+\begin{lstlisting}[caption={HTTPS Virtual Host Configuration}]
+<VirtualHost *:443>
+ServerName www.sitefoda.com
+ServerAlias sitefoda.com
+DocumentRoot /var/www/html
+ErrorLog ${APACHE_LOG_DIR}/error.log
+CustomLog ${APACHE_LOG_DIR}/access.log combined
+ServerAdmin webmaster@localhost
+
+<FilesMatch ".(?:cgi|shtml|phtml|php)$">
+SSLOptions +StdEnvVars
+</FilesMatch>
+<Directory /usr/lib/cgi-bin>
+SSLOptions +StdEnvVars
+</Directory>
+
+SSLEngine on
+SSLCertificateFile /etc/ssl/certs/apache.crt
+SSLCertificateKeyFile /etc/ssl/private/apache.key
+</VirtualHost>
+\end{lstlisting}
+
+\begin{itemize}
+\item \texttt{SSLEngine on}: Enables SSL/TLS.
+\item \texttt{SSLCertificateFile} and \texttt{SSLCertificateKeyFile}: Specify the self-signed certificate and key.
+\end{itemize}
+
+\subsection*{Permissions}
+\addcontentsline{toc}{subsection}{Permissions}
+File and directory permissions are set to enhance security:
+
+\begin{lstlisting}[language=bash, caption={Permission Commands}]
+sudo chmod 750 /etc/apache2/conf*
+sudo chown -R www-data:www-data /var/www
+\end{lstlisting}
+
+\begin{itemize}
+\item \texttt{chmod 750 /etc/apache2/conf*}: Restricts configuration files to the owner and group.
+\item \texttt{chown -R www-data:www-data /var/www}: Sets the web server user as the owner of the web root.
+\end{itemize}
+
+\vspace{1cm}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{apache1.png}
+    \caption{HTTP to HTTPS Redirect}
+    \label{fig:identifier}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{apache2.png}
+    \caption{TRACE Method Not Allowed}
+    \label{fig:identifier}
+\end{figure}
+
+\newpage
+
+\section*{Web Application}
+\addcontentsline{toc}{section}{Web Application}
+
+The web application was developed with a focus on simplicity, security, and user experience. We used \textbf{HTML}, \textbf{Tailwind CSS}, \textbf{JavaScript}, and \textbf{PHP} for its construction. The application is hosted in the DMZ, adhering to the principle of layer separation and protecting sensitive data in the internal network.
+
+\subsection*{General Description}
+\addcontentsline{toc}{subsection}{General Description}
+
+The homepage displays \textit{quotes} (motivational or inspirational phrases) for users. The quotes are dynamically generated using the system command \texttt{fortune}, executed securely on the server.
+
+The system consists of four main pages:
+\begin{itemize}
+    \item \textbf{Home}: Displays a randomly generated quote.
+    \item \textbf{Register}: New user registration page.
+    \item \textbf{Login}: Authentication page.
+    \item \textbf{Profile}: User profile page, where users can save their favorite quotes.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{appweb1.png}
+    \caption{Home Page}
+    \label{fig:identifier}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{appweb2.png}
+    \caption{Register Page}
+    \label{fig:identifier}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{appweb3.png}
+    \caption{Login Page}
+    \label{fig:identifier}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{appweb4.png}
+    \caption{Profile Page}
+    \label{fig:identifier}
+\end{figure}
+
+\newpage
+
+\subsection*{Command Execution Security}
+\addcontentsline{toc}{subsection}{Command Execution Security}
+
+Quotes are generated with \texttt{shell\_exec} and the \texttt{fortune} command, but with rigorous sanitization to prevent arbitrary execution:
+
+\begin{lstlisting}[language=php, caption={Sanitization of shell\_exec Command}]
+while(empty($fortune) || strlen($fortune) >= 700) {
+    if (is_executable($fortune_path)) {
+        $fortune = shell_exec(escapeshellcmd($fortune_path));
+    }
+
+    if(empty($fortune) || strlen($fortune) >= 700) {
+        $fortune = '';
+    }
+}
+
+if (empty($fortune)) {
+    $default_quotes = [...];
+    $fortune = $default_quotes[array_rand($default_quotes)];
+}
+
+return htmlspecialchars(trim($fortune), ENT_QUOTES | ENT_SUBSTITUTE, 'utf-8');
+\end{lstlisting}
+
+\subsection*{Secure Password Storage}
+\addcontentsline{toc}{subsection}{Secure Password Storage}
+
+During user registration, passwords are encrypted using \texttt{bcrypt} via PHP's native function:
+
+\begin{lstlisting}[language=php, caption={Password Hashing with bcrypt}]
+$hashed_password = password_hash($password, PASSWORD_DEFAULT);
+\end{lstlisting}
+
+\subsection*{Secure SQL with Prepared Statements}
+\addcontentsline{toc}{subsection}{Secure SQL with Prepared Statements}
+
+All database interactions use \texttt{prepared statements} to prevent SQL injection:
+
+\begin{lstlisting}[language=php, caption={Insertion with Prepared Statement}]
+$stmt = $db->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+$stmt->bind_param("sss", $username, $email, $hashed_password);
+\end{lstlisting}
+
+\subsection*{Input Sanitization}
+\addcontentsline{toc}{subsection}{Input Sanitization}
+
+Data received via forms is sanitized using appropriate filters:
+
+\begin{lstlisting}[language=php, caption={Input Sanitization}]
+$username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_SPECIAL_CHARS);
+$email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+\end{lstlisting}
+
+\subsection*{Favorites Functionality}
+\addcontentsline{toc}{subsection}{Favorites Functionality}
+
+On the profile page, users can save their favorite quotes. These actions are also protected by prepared statements and session validations.
+
+\newpage
+\section*{Mailcow Email Service (Postfix + Dovecot)}
+\addcontentsline{toc}{section}{Mailcow Email Service (Postfix + Dovecot)}
+
+To provide a complete, secure, and auditable email service, we opted for the deployment of \textbf{Mailcow}, which integrates \textit{Postfix} as the MTA (Mail Transfer Agent) and \textit{Dovecot} as the MDA (Mail Delivery Agent), along with antispam, antivirus, webmail, and administrative interface modules.
+
+\subsection*{Installation and Configuration}
+\addcontentsline{toc}{subsection}{Installation and Configuration}
+
+Mailcow installation is performed via \texttt{Docker} using the automated \texttt{generate\_config.sh} script provided by the official repository. This script generates the necessary configuration files based on the domain and administrator preferences.
+
+By default, Mailcow uses the ports:
+\begin{itemize}
+    \item 80 (HTTP)
+    \item 443 (HTTPS)
+\end{itemize}
+
+To avoid conflicts with the Apache web server already present in the DMZ, these ports were changed in the \texttt{mailcow.conf} file:
+
+\begin{lstlisting}[caption={Port Changes in mailcow.conf}]
+HTTP_PORT=8080
+HTTPS_PORT=8443
+\end{lstlisting}
+
+\subsection*{Security and Accounts}
+\addcontentsline{toc}{subsection}{Security and Accounts}
+
+After installation, the default administrator account password was changed to a secure password, and a new test user account was created.
+
+We adopted a strong password policy with the following criteria:
+\begin{itemize}
+    \item Minimum of 12 characters
+    \item Must contain letters and numbers
+\end{itemize}
+
+This policy reduces the risk of unauthorized access, even if credentials are exposed.
+
+\subsection*{Email Service Operation}
+\addcontentsline{toc}{subsection}{Email Service Operation}
+
+Mailcow offers a complete and responsive administrative interface, facilitating the management of domains, mailboxes, aliases, distribution lists, and logs. Communication between servers and clients is protected by SSL/TLS, ensuring the confidentiality and integrity of transmitted data.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{mailcow1.png}
+    \caption{Mailcow Administrative Interface Dashboard}
+    \label{fig:mailcow-dashboard}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{mailcow2.png}
+    \caption{Test User Account Created Successfully}
+    \label{fig:mailcow-user}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{mailcow3.png}
+    \caption{Email Sending and Receiving Tested Successfully}
+    \label{fig:mailcow-email}
+\end{figure}
+
+\clearpage
+\section*{MySQL Server Database}
+\addcontentsline{toc}{section}{MySQL Server Database}
+
+The \textbf{MySQL Server} database is responsible for storing sensitive web application information, including user credentials and favorite quotes. It is located in the internal network for enhanced security, accessible remotely only by the application in the DMZ.
+
+\subsection*{Initial Configuration}
+\addcontentsline{toc}{subsection}{Initial Configuration}
+
+The first step was to change the administrator (\texttt{root}) password and create a new user specifically for the application to access the database remotely:
+
+\begin{lstlisting}[language=sql, caption={Creation of remote user with privileges}]
+CREATE USER 'remote_user'@'192.168.8.50' IDENTIFIED BY 'securePassword123';
+GRANT ALL PRIVILEGES ON *.* TO 'remote_user'@'192.168.8.50';
+FLUSH PRIVILEGES;
+\end{lstlisting}
+
+This user is permitted access only from the DMZ machine's IP (\texttt{192.168.8.50}), ensuring logical segmentation between network zones.
+
+\subsection*{Database and Table Creation}
+\addcontentsline{toc}{subsection}{Database and Table Creation}
+
+The \texttt{fortune\_quotes} database was created, containing two tables: one for storing user data and another for recording favorite quotes.
+
+\begin{lstlisting}[caption={Database and Table Creation}]
+CREATE DATABASE IF NOT EXISTS fortune_quotes;
+USE fortune_quotes;
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX (email)
+);
+
+-- Favorite quotes table
+CREATE TABLE IF NOT EXISTS favorite_quotes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    quote TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX (user_id)
+);
+\end{lstlisting}
+
+The \texttt{favorite\_quotes} table has a foreign key linked to the \texttt{users} table, ensuring referential integrity and allowing automatic deletion of quotes if a user is removed.
+
+\subsection*{User with Restricted Permissions}
+\addcontentsline{toc}{subsection}{User with Restricted Permissions}
+
+For testing and simulations, an additional user with minimal permissions was created. This user can only perform read operations (\texttt{SELECT}) on the favorite quotes table.
+
+This practice follows the principle of least privilege, essential for database security.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{mysql1.png}
+    \caption{Test User Permissions with \texttt{SHOW GRANTS}}
+    \label{fig:mysql-grants}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{mysql2.png}
+    \caption{Query to favorite\_quotes Table with Test User}
+    \label{fig:mysql-select}
+\end{figure}
+
+\clearpage
+
+\section*{SAMBA (SMB) File Sharing}
+\addcontentsline{toc}{section}{SAMBA (SMB) File Sharing}
+
+The file-sharing service was implemented using \textbf{Samba} with the \textbf{SMB3} protocol, which offers native support for encryption of all connections. The following directives were configured in the \texttt{smb.conf} file to enhance security:
+
+\begin{lstlisting}[caption={SMB Protocol Security Configuration}]
+smb min protocol = 3
+smb encrypt = required
+\end{lstlisting}
+
+These directives ensure that only SMB3 connections are accepted and that encryption is mandatory for all accesses to the Samba server.
+
+\subsection*{Sharing Configuration}
+\addcontentsline{toc}{subsection}{Sharing Configuration}
+
+The sharing was defined as follows:
+
+\begin{lstlisting}[caption={Sharing Block in smb.conf}]
+[InternalFiles]
+path = /srv/internal_files
+browseable = yes
+writable = yes
+valid users = cebolinha bernardo.walker enzzo.silvino filho.cassio
+create mask = 0660
+directory mask = 0770
+\end{lstlisting}
+
+The \texttt{/srv/internal\_files} directory was created with restrictive permissions:
+
+\begin{itemize}
+    \item \textbf{Permissions}: \texttt{drwxrwx---} (770)
+    \item \textbf{Purpose}: Ensure that only authenticated users have full access.
+\end{itemize}
+
+\subsection*{Auditing and Logging}
+\addcontentsline{toc}{subsection}{Auditing and Logging}
+
+The log level was adjusted to capture useful access information:
+
+\begin{lstlisting}[caption={Log Configuration for Auditing}]
+log level = 2
+\end{lstlisting}
+
+This allows logging of events such as connections, errors, and file accesses, aiding future audits.
+
+\subsection*{Space Control with Quotas}
+\addcontentsline{toc}{subsection}{Space Control with Quotas}
+
+To prevent excessive disk usage by users, quotas were implemented per group in the filesystem. A group called \texttt{smbquota} was created, and authorized users were added:
+
+\begin{lstlisting}[language=bash, caption={Adding users to smbquota group}]
+sudo usermod -aG smbquota filho.cassio
+sudo usermod -aG smbquota bernardo.walker
+sudo usermod -aG smbquota enzzo.silvino
+sudo usermod -aG smbquota cebolinha
+\end{lstlisting}
+
+The quota was applied as follows:
+
+\begin{lstlisting}[language=bash, caption={Applying quota to smbquota group}]
+sudo setquota -g smbquota 921600 1048576 0 0 /
+\end{lstlisting}
+
+\textbf{Defined Limits:}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Limit Type} & \textbf{Value} & \textbf{Meaning} \\
+\hline
+Soft Limit          & 900 MiB        & Warning after reaching (7 days tolerance) \\
+Hard Limit          & 1 GiB          & Prevents writing above the limit \\
+File Limit          & Unlimited      & No restriction on file count \\
+\hline
+\end{tabular}
+\caption{Quota Policy for the \texttt{smbquota} Group}
+\label{tab:samba-quotas}
+\end{table}
+
+\subsection*{Sharing and Access Tests}
+\addcontentsline{toc}{subsection}{Sharing and Access Tests}
+
+Practical tests of access and file movement were conducted to ensure the correct functioning of the sharing.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{samba1.png}
+    \caption{Creation and Movement of File to Shared Folder}
+    \label{fig:samba-creation}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{samba2.png}
+    \caption{Access to Sharing via smbclient with Test User}
+    \label{fig:samba-access}
+\end{figure}
+
+\clearpage
+
+\section*{Backup with Restic}
+\addcontentsline{toc}{section}{Backup with Restic}
+
+The backup system was implemented using \textbf{Restic}, a modern tool that ensures security, performance, and simplicity. This mechanism performs incremental backups with native encryption and easy integration with \texttt{systemd}.
+
+\subsection*{Restic Advantages}
+\addcontentsline{toc}{subsection}{Restic Advantages}
+
+\begin{itemize}
+    \item \textbf{Security}: All data is encrypted with \texttt{AES-256} and authenticated with HMAC, ensuring protection against reading and tampering.
+    \item \textbf{Performance}: Incremental backups avoid redundancy, saving time and space.
+    \item \textbf{Simplicity and Portability}: Works without a daemon, ideal for scheduling via \texttt{systemd} or custom scripts.
+\end{itemize}
+
+\subsection*{User and Permissions}
+\addcontentsline{toc}{subsection}{User and Permissions}
+
+We created the \texttt{backupuser} user, exclusively for running the backup process, with secure characteristics:
+
+\begin{itemize}
+    \item System user type (UID below 1000)
+    \item No login shell (\texttt{/usr/sbin/nologin})
+    \item No \texttt{home} directory
+    \item No access password
+    \item Group: \texttt{nogroup}
+\end{itemize}
+
+Permissions for the repository and sensitive files:
+
+\begin{lstlisting}[language=bash, caption={Repository and Password Permissions}]
+sudo chown -R backupuser:nogroup /backups/restic_repo
+sudo chown backupuser:nogroup /etc/restic/pass
+sudo chmod 600 /etc/restic/pass
+\end{lstlisting}
+
+\subsection*{Backup Script}
+\addcontentsline{toc}{subsection}{Backup Script}
+
+The main script was moved to a secure location:
+
+\begin{lstlisting}[language=bash, caption={Backup Script Organization}]
+sudo mkdir -p /opt/restic
+sudo mv /usr/local/sbin/restic_backup.sh /opt/restic/restic_backup.sh
+sudo chown backupuser:nogroup /opt/restic/restic_backup.sh
+sudo chmod 750 /opt/restic/restic_backup.sh
+\end{lstlisting}
+
+\textbf{Script Functions:}
+
+\begin{itemize}
+    \item Checks if repository disk usage exceeds 50\%. If so, the backup is aborted.
+    \item Performs incremental backup of the \texttt{/opt} folder.
+    \item Executes intelligent retention: only the last two snapshots are kept with \texttt{restic forget --keep-last 2 --prune}.
+    \item All execution is logged in \texttt{/var/log/restic/backup.log}.
+\end{itemize}
+
+\subsection*{Systemd Integration}
+\addcontentsline{toc}{subsection}{Systemd Integration}
+
+\textbf{Service:} \texttt{/etc/systemd/system/restic-backup.service}
+
+\begin{lstlisting}[language=ini, caption={Restic systemd Service}]
+[Unit]
+Description=Daily Restic Backup (Incremental, retention 2)
+
+[Service]
+Type=oneshot
+User=backupuser
+Group=nogroup
+ExecStart=/opt/restic/restic_backup.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+\end{lstlisting}
+
+\textbf{Timer:} \texttt{/etc/systemd/system/restic-backup.timer}
+
+\begin{lstlisting}[language=ini, caption={Restic systemd Timer}]
+[Unit]
+Description=Daily Restic Backup Scheduler
+
+[Timer]
+OnCalendar=*-*-* 04:30
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+\end{lstlisting}
+
+\subsection*{Important Paths}
+\addcontentsline{toc}{subsection}{Important Paths}
+
+\begin{itemize}
+    \item \texttt{/backups/resticrepo} – Backup repository
+    \item \texttt{/etc/restic/pass} – Repository password
+    \item \texttt{/opt/restic/resticbackup.sh} – Execution script
+    \item \texttt{/etc/systemd/system/restic-backup.service} – Systemd service
+    \item \texttt{/etc/systemd/system/restic-backup.timer} – Systemd timer
+    \item \texttt{/var/log/restic/backup.log} – Detailed execution log
+\end{itemize}
+
+\subsection*{Test User (Snapshot Reading)}
+\addcontentsline{toc}{subsection}{Test User (Snapshot Reading)}
+
+A configuration was created so that the test user can only view snapshots, without write permissions:
+
+\begin{lstlisting}[language=bash, caption={Read Permission for Test User}]
+sudo chmod -R 550 /backups/restic_repo/
+sudo chown -R root:cebolinha /backups/restic_repo/
+\end{lstlisting}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{restic1.png}
+    \caption{Test User Viewing Snapshots in Restic Repository}
+    \label{fig:restic-snapshots}
+\end{figure}
+
+\clearpage
+
+\section*{Secure Remote Access via SSH}
+\addcontentsline{toc}{section}{Secure Remote Access via SSH}
+
+The \textbf{SSH} (Secure Shell) protocol was configured with a focus on security and access control, using public key authentication and integration with multifactor authentication.
+
+\subsection*{SSH Server Configuration}
+\addcontentsline{toc}{subsection}{SSH Server Configuration}
+
+The main configuration file used was \texttt{/etc/ssh/sshd\_config}. The main security directives applied include:
+
+\begin{itemize}
+    \item \texttt{PubkeyAuthentication yes} – Enables public key authentication.
+    \item \texttt{AuthorizedKeysFile .ssh/authorized\_keys} – Standard path for authorized keys.
+    \item \texttt{PasswordAuthentication no} – Disables password authentication.
+    \item \texttt{PermitRootLogin no} – Blocks direct login as \texttt{root}.
+    \item \texttt{UsePAM yes} – Kept enabled for Google Authenticator integration.
+    \item \texttt{PermitEmptyPasswords no} – Prevents authentication of users with empty passwords.
+\end{itemize}
+
+\subsection*{Public Key Installation}
+\addcontentsline{toc}{subsection}{Public Key Installation}
+
+Authorized users' public keys were added to their respective \texttt{\textasciitilde/.ssh} directories:
+
+\begin{lstlisting}[language=bash, caption={Directory Creation and Key Installation}]
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+echo "XXCHAVEXX" > ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+\end{lstlisting}
+
+\subsection*{Bypass for Test User}
+\addcontentsline{toc}{subsection}{Bypass for Test User}
+
+For the \texttt{cebolinha} user, a Google Authenticator bypass was configured, requiring only the public key:
+
+\begin{lstlisting}[language=bash, caption={Match rule for test user}]
+Match User cebolinha
+    AuthenticationMethods publickey
+\end{lstlisting}
+
+\subsection*{Connectivity Tests}
+\addcontentsline{toc}{subsection}{Connectivity Tests}
+
+SSH connectivity tests were conducted between different network segments to verify firewall and routing policies:
+
+\begin{itemize}
+    \item \textbf{Internal Network} $\rightarrow$ \textbf{DMZ} on port \texttt{22}: \textbf{Allowed}.
+    \item \textbf{DMZ} $\rightarrow$ \textbf{Internal Network} on port \texttt{2222}: \textbf{Allowed}.
+    \item \textbf{External Machine} $\rightarrow$ \textbf{DMZ} on port \texttt{22}: \textbf{Allowed}.
+    \item \textbf{External Machine} $\rightarrow$ \textbf{Internal Network} on port \texttt{2222}: \textbf{Blocked} (as expected).
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{ssh1.png}
+    \caption{Connection Established from Internal Network to DMZ on Port 22}
+    \label{fig:ssh-internal-dmz}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{ssh2.png}
+    \caption{Connection Established from DMZ to Internal Network on Port 2222}
+    \label{fig:ssh-dmz-internal}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{ssh3.png}
+    \caption{Connection Established from External Machine to DMZ on Port 22}
+    \label{fig:ssh-external-dmz}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{ssh4.png}
+    \caption{Connection Attempt from External Machine to Internal Network on Port 2222 - Access Denied}
+    \label{fig:ssh-external-internal-blocked}
+\end{figure}
+
+\clearpage
+
+\section*{Snort (IDS/IPS)}
+\addcontentsline{toc}{section}{Snort (IDS/IPS)}
+
+\textbf{Snort} was configured as an Intrusion Detection and Prevention System (IDS/IPS), operating in real-time to protect the Internal Network and DMZ against scans, unauthorized access, and suspicious connections.
+
+\subsection*{Rule Sources}
+\addcontentsline{toc}{subsection}{Rule Sources}
+
+Several rule sources were enabled to maximize threat detection coverage:
+
+\begin{itemize}
+    \item \textbf{Snort VRT Rules}: Requires registration on Snort.org and provision of the \textit{Oinkmaster Code}.
+    \item \textbf{Snort GPLv2 Community Rules}: Community-maintained rules.
+    \item \textbf{Emerging Threats Open Rules (ET Open)}: Free set maintained by Proofpoint.
+    \item \textbf{OpenAppID Detectors}: Application detection by signature.
+    \item \textbf{Feodo Tracker Botnet C2 IP Rules}: Blocks connections to command and control (C2) IPs.
+\end{itemize}
+
+\textbf{Rule Update Interval:} Daily at 04:00.\\
+\textbf{Automatic IP Unblocking:} After 1 hour.
+
+\subsection*{Manual Rule Update}
+\addcontentsline{toc}{subsection}{Manual Rule Update}
+
+An initial manual update was performed in the Updates tab to ensure all sources were synchronized:
+
+\begin{itemize}
+    \item Snort Subscriber Ruleset
+    \item Snort GPLv2 Community Rules
+    \item Emerging Threats Open Rules
+    \item Snort OpenAppID Detectors
+    \item Snort AppID Open Text Rules
+    \item Feodo Tracker Botnet C2 IP Rules
+\end{itemize}
+
+\subsection*{Pass Lists (Exclusion List)}
+\addcontentsline{toc}{subsection}{Pass Lists (Exclusion List)}
+
+To avoid blocking essential internal IPs, an exclusion list was created with the following IPs:
+\begin{itemize}
+    \item 192.168.8.50 (Internal Network Server)
+    \item 192.168.8.34 (DMZ Server)
+\end{itemize}
+
+\subsection*{Monitored Interfaces}
+\addcontentsline{toc}{subsection}{Monitored Interfaces}
+
+The configured interfaces for monitoring are:
+
+\begin{itemize}
+    \item \textbf{LAN33 (Internal Network)}
+    \item \textbf{LAN49 (DMZ)}
+\end{itemize}
+
+For both:
+\begin{itemize}
+    \item Snort enabled on the interface
+    \item \textit{Block Offenders} enabled (legacy mode)
+    \item \textit{Kill States} enabled
+    \item Detection mode: \textbf{AC-BNFA}, with optimized search
+    \item Passlist applied
+\end{itemize}
+
+\subsection*{Rule Policy}
+\addcontentsline{toc}{subsection}{Rule Policy}
+
+The \textbf{Balanced Policy} was chosen, providing a balance between security and connectivity. The \textbf{Connectivity} policy, though less restrictive, allowed unwanted scans and tests.
+
+\subsection*{Preprocessors}
+\addcontentsline{toc}{subsection}{Preprocessors}
+
+\begin{itemize}
+    \item \textbf{SSH Detection}:
+    \begin{itemize}
+        \item LAN33: port 2222
+        \item LAN49: port 22
+    \end{itemize}
+    \item \textbf{Portscan Detection}:
+    \begin{itemize}
+        \item LAN33: \textbf{High} sensitivity
+        \item LAN49: \textbf{Medium} sensitivity
+    \end{itemize}
+    \item \textbf{ARP Spoofing Detection}: Enabled on both interfaces
+\end{itemize}
+
+\subsection*{Detection Tests}
+\addcontentsline{toc}{subsection}{Detection Tests}
+
+To validate Snort's functionality, the following tests were conducted:
+
+\begin{itemize}
+    \item \textbf{Nmap scan from external machine to DMZ}:
+
+\begin{lstlisting}[language=bash, caption={Nmap Scan}]
+nmap -sV -O 192.168.8.50
+\end{lstlisting}
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{snort1.png}
+    \caption{Nmap Scan Blocked and Stopped}
+    \label{fig:snort-nmap}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{snort2.png}
+    \caption{Alert Generated by Snort During Intrusion Attempt}
+    \label{fig:snort-alert}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{snort3.png}
+    \caption{External IP Automatically Blocked by Snort}
+    \label{fig:snort-block}
+\end{figure}
+
+\clearpage
+
+\section*{Light LDAP (LLDAP)}
+\addcontentsline{toc}{section}{Light LDAP (LLDAP)}
+
+The \textbf{LLDAP (Light LDAP)} service was used as a lightweight and modern directory solution, supporting LDAPS (LDAP over TLS) and a web administrative interface. It was implemented via \texttt{Docker}, ensuring portability and simplicity in management.
+
+\subsection*{Configuration via Docker Compose}
+\addcontentsline{toc}{subsection}{Configuration via Docker Compose}
+
+The service was configured with the following \texttt{docker-compose.yml} file, exposing port 6360 for LDAPS connections and 17170 for the web interface:
+
+\begin{lstlisting}[language=yaml, caption={LLDAP docker-compose.yml File}]
+version: "3"
+
+services:
+  lldap:
+    image: lldap/lldap:stable
+    ports:
+      - "6360:6360"  # LDAPS
+      - "17170:17170"  # Web interface
+    volumes:
+      - lldap_data:/data
+      - ./certs/lldap.crt:/app/lldap.crt
+      - ./certs/lldap.key:/app/lldap.key
+    environment:
+      - LLDAP_LDAPS_OPTIONS__ENABLED=true
+      - LLDAP_LDAPS_OPTIONS__CERT_FILE=/app/lldap.crt
+      - LLDAP_LDAPS_OPTIONS__KEY_FILE=/app/lldap.key
+      - LLDAP_JWT_SECRET=XXXXXX
+      - LLDAP_KEY_SEED=XXXXX
+      - LLDAP_LDAP_BASE_DN=dc=example,dc=com
+      - LLDAP_LDAP_USER_PASS=XXXXX
+    restart: unless-stopped
+
+volumes:
+  lldap_data:
+    driver: local
+\end{lstlisting}
+
+\subsection*{Web Administrative Interface}
+\addcontentsline{toc}{subsection}{Web Administrative Interface}
+
+After deployment, the administrative interface can be accessed via browser at:
+
+\begin{center}
+\texttt{http://localhost:17170}
+\end{center}
+
+Through this interface, the following actions were performed:
+
+\begin{itemize}
+    \item Created a new user with administrative privileges.
+    \item Created the \texttt{cebolinha} user and added it to the \texttt{LLDAP-STRICT-READONLY} group, ensuring restricted read-only access.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{lldap1.png}
+    \caption{LLDAP Administration Screen}
+    \label{fig:lldap-admin}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{lldap2.png}
+    \caption{View of Test User (cebolinha)}
+    \label{fig:lldap-user}
+\end{figure}
+
+\subsection*{LDAPSEARCH Query}
+\addcontentsline{toc}{subsection}{LDAPSEARCH Query}
+
+The \texttt{ldapsearch} command was used to validate the structure and read permissions assigned to the test user. Below are examples of searches performed:
+
+\begin{lstlisting}[language=bash, caption={LDAP Query for cebolinha}]
+ldapsearch -x -H ldaps://localhost:6360 -D "uid=cebolinha,ou=people,dc=example,dc=com" -W -b "dc=example,dc=com" "(cn=cebolinha)"
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash, caption={LDAP Query for admin user}]
+ldapsearch -x -H ldaps://localhost:6360 -D "uid=cebolinha,ou=people,dc=example,dc=com" -W -b "dc=example,dc=com" "(cn=admin)"
+\end{lstlisting}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{lldap3.png}
+    \caption{LDAP Query for cebolinha using \texttt{ldapsearch}}
+    \label{fig:lldap-search-cebolinha}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{lldap4.png}
+    \caption{LDAP Query for admin using \texttt{ldapsearch}}
+    \label{fig:lldap-search-admin}
+\end{figure}
+
+\clearpage
+
+\section*{Wazuh (XDR + SIEM)}
+\addcontentsline{toc}{section}{Wazuh (XDR + SIEM)}
+
+\textbf{Wazuh} is a security platform that functions as a \textit{SIEM} (Security Information and Event Management) and \textit{XDR} (Extended Detection and Response) solution. It enables log collection, analysis, and correlation, intrusion detection, integrity monitoring, incident response, and more.
+
+\subsection*{Wazuh Manager Installation}
+\addcontentsline{toc}{subsection}{Wazuh Manager Installation}
+
+The \textbf{Wazuh Manager} installation was performed using the official script:
+
+\begin{lstlisting}[language=bash, caption={Wazuh Manager Installation}]
+curl -sO https://packages.wazuh.com/4.11/wazuh-install.sh
+chmod +x wazuh-install.sh
+./wazuh-install.sh
+\end{lstlisting}
+
+\textit{Note:} The \texttt{admin} user password is automatically generated during installation and displayed in the terminal.
+
+\subsection*{Wazuh Agent Installation}
+\addcontentsline{toc}{subsection}{Wazuh Agent Installation}
+
+On a client machine (such as in the DMZ or internal network), the \textbf{Wazuh Agent} was installed with the commands below, using the Wazuh Manager's IP:
+
+\begin{lstlisting}[language=bash, caption={Wazuh Agent Installation}]
+wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.11.2-1_amd64.deb
+sudo WAZUH_MANAGER='192.168.8.34' WAZUH_AGENT_NAME='DMZ' dpkg -i ./wazuh-agent_4.11.2-1_amd64.deb
+sudo systemctl daemon-reload
+sudo systemctl enable wazuh-agent
+sudo systemctl start wazuh-agent
+\end{lstlisting}
+
+\subsection*{Wazuh Agent Configuration}
+\addcontentsline{toc}{subsection}{Wazuh Agent Configuration}
+
+To ensure audit logs are monitored, the agent configuration file was edited:
+
+\begin{lstlisting}[language=xml, caption={Audit Log Monitoring Addition}]
+<localfile>
+  <log_format>audit</log_format>
+  <location>/var/log/audit/audit.log</location>
+</localfile>
+\end{lstlisting}
+
+\subsection*{Audit Rules for Privileged Commands}
+\addcontentsline{toc}{subsection}{Audit Rules for Privileged Commands}
+
+To ensure visibility into administrative privilege usage, rules were added to \texttt{auditd}:
+
+\begin{lstlisting}[language=bash, caption={Audit Rules in /etc/audit/rules.d/audit.rules}]
+-a exit,always -F arch=b64 -F euid=0 -S execve -k audit-wazuh
+-a exit,always -F arch=b32 -F euid=0 -S execve -k audit-wazuh
+\end{lstlisting}
+
+These rules ensure that all \texttt{execve()} system calls performed by users with effective ID 0 (\texttt{root}) are logged and processed by Wazuh.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{siem1.png}
+    \caption{Wazuh Dashboard with Active Agent in DMZ}
+    \label{fig:wazuh-dashboard}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{siem2.png}
+    \caption{Wazuh Agent Interface Running on DMZ Machine}
+    \label{fig:wazuh-agent-dmz}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{siem3.png}
+    \caption{Vulnerability Inventory Detected}
+    \label{fig:wazuh-vulnerabilities}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{siem4.png}
+    \caption{Wazuh Alert Center with Security Events}
+    \label{fig:wazuh-alerts}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{DLP2.png}
+    \caption{Event of Execution with Root Permissions Captured}
+    \label{fig:wazuh-rootexec}
+\end{figure}
+
+\clearpage
+
+\section*{YARA Integration with Wazuh (DLP)}
+\addcontentsline{toc}{section}{YARA Integration with Wazuh (DLP)}
+
+To enhance \textbf{Data Loss Prevention (DLP)} capabilities, integration between \textbf{YARA} and the \textbf{Wazuh} agent was performed. YARA is a powerful tool for identifying patterns and sensitive content in files.
+
+\subsection*{YARA Rules}
+\addcontentsline{toc}{subsection}{YARA Rules}
+
+Rules were defined in the \texttt{/opt/dlp/rules/dlp.yar} file. Below are some of the rules used:
+
+\begin{lstlisting}[language=yara, caption={YARA Rules for Sensitive Data Detection}]
+rule Detect_PrivateKey_PEM {
+  meta:
+    description = "Detects private keys in PEM format"
+  strings:
+    $pem1 = "-----BEGIN PRIVATE KEY-----"
+    $pem2 = "-----END PRIVATE KEY-----"
+  condition:
+    $pem1 and $pem2
+}
+
+rule Detect_Email {
+  meta:
+    description = "Detects email addresses"
+  strings:
+    $email = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/
+  condition:
+    $email
+}
+
+rule Detect_PhoneNumber_BR {
+  meta:
+    description = "Detects Brazilian phone numbers"
+  strings:
+    $phone = /\(?\d{2}\)?\s?\d{4,5}-\d{4}/
+  condition:
+    $phone
+}
+\end{lstlisting}
+
+\subsection*{Scanning Script and Scheduling}
+\addcontentsline{toc}{subsection}{Scanning Script and Scheduling}
+
+A \texttt{yara\_scan.sh} script was created to scan defined directories, executing YARA rules and logging the output:
+
+\begin{lstlisting}[language=bash, caption={Excerpt from yara\_scan.sh Script}]
+#!/bin/bash
+
+echo "=== [$(date)] Scan Start ===" >> /var/log/yara-dlp.log
+yara -r /opt/dlp/rules/dlp.yar /home/* >> /var/log/yara-dlp.log 2>&1
+echo "=== Scan finished ===" >> /var/log/yara-dlp.log
+echo >> /var/log/yara-dlp.log
+\end{lstlisting}
+
+This script is automatically executed every 4 hours via a scheduled \texttt{cron} task:
+
+\begin{lstlisting}[language=bash, caption={Crontab Scheduling}]
+0 */4 * * * root /usr/local/bin/yara_scan.sh
+\end{lstlisting}
+
+\subsection*{Integration with Wazuh Agent}
+\addcontentsline{toc}{subsection}{Integration with Wazuh Agent}
+
+To enable Wazuh to monitor YARA detections, the agent was configured to track the log file:
+
+\begin{lstlisting}[language=xml, caption={YARA Log Monitoring in Wazuh Agent}]
+<localfile>
+  <log_format>full_command</log_format>
+  <location>/var/log/yara-dlp.log</location>
+</localfile>
+\end{lstlisting}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{DLP1.png}
+    \caption{Log Indicating Email Presence in Test User's File}
+    \label{fig:yara-log}
+\end{figure}
+
+\clearpage
+
+\section*{HashiCorp Vault (PAM)}
+\addcontentsline{toc}{section}{HashiCorp Vault (PAM)}
+
+To ensure secure credential delivery between systems, the \textbf{HashiCorp Vault} tool was used, implementing the \textbf{Privileged Access Management (PAM)} standard. The solution dynamically distributes MySQL database credentials from the internal network (192.168.8.34) to a PHP application hosted on Apache in the DMZ (192.168.8.50).
+
+\subsection*{Workflow}
+\addcontentsline{toc}{subsection}{Workflow}
+
+\begin{itemize}
+    \item The \textbf{Vault} stores credentials in the \texttt{KV v2} engine.
+    \item DMZ machine authentication is performed via \texttt{AppRole} with the \textbf{Vault Agent}.
+    \item The agent dynamically generates the \texttt{/etc/app/db.env} file with username and password.
+    \item Apache is automatically reloaded when the template is updated.
+    \item Communication between the DMZ and Vault is protected by TLS with a self-signed certificate.
+\end{itemize}
+
+\subsection*{Vault Configuration (host 192.168.8.34)}
+\addcontentsline{toc}{subsection}{Vault Configuration}
+
+File \texttt{vault.hcl}:
+
+\begin{lstlisting}[language=bash, caption={vault.hcl}]
+ui = true
+storage "file" {
+  path = "/opt/vault/data"
+}
+listener "tcp" {
+  address = "0.0.0.0:8200"
+  tls_cert_file = "/opt/vault/tls/tls.crt"
+  tls_key_file = "/opt/vault/tls/tls.key"
+  tls_disable = false
+}
+api_addr = "https://192.168.8.34:8200"
+\end{lstlisting}
+
+\begin{itemize}
+    \item Certificate with SAN: \texttt{vault.interno.local} + IP.
+    \item Initialization: \texttt{vault operator init -key-shares=5 -key-threshold=3}.
+\end{itemize}
+
+\textbf{Enable KV v2 engine:}
+\begin{lstlisting}[language=bash]
+vault secrets enable -path=secret kv-v2
+vault kv put secret/db-credentials username="remote_user" password="######"
+\end{lstlisting}
+
+\textbf{db-read.hcl Policy:}
+\begin{lstlisting}[language=hcl]
+path "secret/data/db-credentials" {
+  capabilities = ["read"]
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+vault policy write app-db-read db-read.hcl
+\end{lstlisting}
+
+\textbf{AppRole Configuration:}
+\begin{lstlisting}[language=bash]
+vault auth enable approle
+vault write auth/approle/role/app-role \
+  token_policies="app-db-read" \
+  token_ttl=1h token_max_ttl=4h \
+  token_bound_cidrs="192.168.8.50/32" \
+  secret_id_num_uses=0 secret_id_ttl=0
+
+vault read -field=role_id auth/approle/role/app-role/role-id > /etc/vault/role_id
+vault write -field=secret_id -f auth/approle/role/app-role/secret-id > /etc/vault/secret_id
+\end{lstlisting}
+
+\subsection*{Vault Agent Configuration (host 192.168.8.50)}
+\addcontentsline{toc}{subsection}{Vault Agent Configuration}
+
+\textbf{Environment file template: \texttt{/etc/vault/db-template.tpl}}
+
+\begin{lstlisting}[language=html]
+DB_USER={{ with secret "secret/data/db-credentials" }}{{ .Data.data.username }}{{ end }}
+DB_PASS={{ with secret "secret/data/db-credentials" }}{{ .Data.data.password }}{{ end }}
+\end{lstlisting}
+
+\textbf{Agent Configuration: \texttt{/etc/vault/agent.hcl}}
+
+\begin{lstlisting}[language=bash]
+vault {
+  address = "https://192.168.8.34:8200"
+  tls_skip_verify = false
+}
+
+auto_auth {
+  method "approle" {
+    mount_path = "approle"
+    config = {
+      role_id_file_path = "/etc/vault/role_id"
+      secret_id_file_path = "/etc/vault/secret_id"
+    }
+  }
+  sink "file" {
+    config = {
+      path = "/etc/vault/.vault-token"
+    }
+  }
+}
+
+template {
+  source      = "/etc/vault/db-template.tpl"
+  destination = "/etc/app/db.env"
+  perms       = "0640"
+  command     = "systemctl reload apache2"
+}
+\end{lstlisting}
+
+\textbf{Systemd Service: \texttt{vault-agent.service}}
+
+\begin{lstlisting}[]
+[Unit]
+Description=Vault Agent - AppRole + template
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/vault agent -config=/etc/vault/agent.hcl
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+\end{lstlisting}
+
+\subsection*{Apache/PHP Integration}
+\addcontentsline{toc}{subsection}{Apache/PHP Integration}
+
+The PHP code directly reads the file:
+
+\begin{lstlisting}[language=php]
+$creds = parse_ini_file('/etc/app/db.env');
+$mysqli = new mysqli('192.168.8.34', $creds['DB_USER'], $creds['DB_PASS'], 'fortune_quotes');
+\end{lstlisting}
+
+\textbf{Permissions:}
+\begin{itemize}
+    \item \texttt{/etc/app}: 750
+    \item \texttt{db.env}: 640
+    \item Group: \texttt{www-data}
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{vault1.png}
+    \caption{Password Update via \texttt{vault kv patch}}
+    \label{fig:vault-update}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{vault2.jpg}
+    \caption{Vault Agent Logs Indicating Successful Rendering}
+    \label{fig:vault-agent-log}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{vault3.png}
+    \caption{Generated Content in \texttt{db.env} File}
+    \label{fig:vault-db-env}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{vault5.png}
+    \caption{Web Application Code Accessing Database}
+    \label{fig:vault-code-ok}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.4\textwidth]{vault4.png}
+    \caption{Web Application Registering Normally with Dynamic Credentials}
+    \label{fig:vault-app-ok}
+\end{figure}
+
+\clearpage
+
+\section*{Firewall Rules}
+\addcontentsline{toc}{section}{Firewall Rules}
+
+Traffic control between network zones was achieved through restrictive firewall rules, ensuring only necessary flows are allowed, thus minimizing the attack surface. The rules were applied to routers/firewalls separating the zones: \textbf{Internal Network}, \textbf{DMZ}, and \textbf{External}.
+
+\subsection*{Blocking Internal Network to External Machine}
+\addcontentsline{toc}{subsection}{Blocking Internal Network to External Machine}
+
+To prevent data theft and unauthorized access from within the network to the external world, the Internal Network was blocked from initiating any direct connections to the external machine.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{firewall1.png}
+    \caption{Blocking All Ports from Internal Network to External Machine}
+    \label{fig:firewall-internal-block}
+\end{figure}
+
+\subsection*{DMZ to Internal Network Access Rules}
+\addcontentsline{toc}{subsection}{DMZ to Internal Network Access Rules}
+
+Communication from the DMZ to the Internal Network is strictly controlled. Only pre-authorized services are allowed, such as MySQL database access (port 3306) and Vault authentication (port 8200).
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{firewall2.jpg}
+    \caption{DMZ to Internal Network Rules: Only Authorized Connections Allowed}
+    \label{fig:firewall-dmz-to-internal}
+\end{figure}
+
+\subsection*{External Machine Restrictions}
+\addcontentsline{toc}{subsection}{External Machine Restrictions}
+
+The External Machine is limited to accessing only public services exposed in the DMZ, such as:
+
+\begin{itemize}
+    \item Web Application (\texttt{HTTP/HTTPS}) – Ports 80/443
+    \item Email Server (SMTP/IMAP/Submission) – Ports 25, 587, 993
+\end{itemize}
+
+Direct connection attempts to the Internal Network are completely blocked. Administrative access is performed in two steps:
+
+\begin{enumerate}
+    \item SSH from the external machine to the DMZ (port 22)
+    \item SSH from the DMZ to the Internal Network (port 2222)
+\end{enumerate}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\textwidth]{firewall3.png}
+    \caption{External Machine Only Accesses Public DMZ Services; Internal Access Requires SSH Proxy}
+    \label{fig:firewall-external}
+\end{figure}
+
+\end{document}

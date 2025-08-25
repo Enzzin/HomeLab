@@ -1,0 +1,349 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue}
+\usepackage[table]{xcolor}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{sectsty}
+\sectionfont{\large\bfseries}
+\subsectionfont{\normalsize\bfseries}
+\usepackage{tocloft}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\usepackage{parskip}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\usepackage{fancyhdr}
+
+\begin{document}
+
+\pagestyle{fancy}
+
+\fancyhead[L]{Vulnerability Report}
+\fancyhead[R]{May 28, 2025}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\Huge\bfseries Vulnerability Report\par}
+    \vspace{1cm}
+    {\Large Object: Group4\par}
+    {\Large Date: May 23, 2025\par}
+    \vspace{0.5cm}
+    {\large\bfseries CONFIDENTIAL INFORMATION\par}
+    \vspace{2cm}
+    {\large Conducted by: \\ Bernardo Walker Leichtweis \\ Enzzo Machado Silvino \\ Cassio Vieceli Filho\par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+\section{Executive Summary}
+Over a period of 2 days, a penetration test (\textit{Gray Box}) was conducted on the internal infrastructure of \textbf{Group4}, focusing on the assets \texttt{192.168.2.50} and \texttt{192.168.2.34}. The test, carried out by Bernardo W. Leichtweis, Enzzo M. Silvino, and Cassio V. Filho, used credentials of a user with minimal privileges (\texttt{cebolinha:c3b0l1nh4}) and followed the \textbf{PTES} methodology.
+
+The primary objective was to identify exploitable vulnerabilities that pose a risk to network security. A total of \textbf{three vulnerabilities} were found, classified as:
+\begin{itemize}
+    \item \textbf{1 Critical}: Hard-coded credentials and weak administrator password (\textit{admin:admin}) expose the web application to unauthorized access.
+    \item \textbf{2 Low}: Exposure of service versions.
+\end{itemize}
+
+Immediate remediation of the critical vulnerability is recommended, with a focus on strengthening authentication policies and permission management.
+
+\section{Introduction}
+This report presents the results of the security assessment on the hosts \texttt{192.168.2.50} and \texttt{192.168.2.34} of Group4. The test, conducted in \textit{Gray Box} mode with test credentials (\texttt{cebolinha:c3b0l1nh4}), aimed to identify vulnerabilities that compromise the confidentiality, integrity, or availability of the systems.
+
+\subsection{Objective}
+To identify vulnerabilities in the specified systems, provide practical recommendations to mitigate risks, and improve Group4's security posture.
+
+\subsection{Methodology}
+The assessment followed the \textbf{PTES} standard, complemented by the \textbf{OWASP Top 10}, and was structured in seven phases:
+\begin{itemize}
+    \item \textbf{Pre-Engagement Interactions}: Definition of scope and rules.
+    \item \textbf{Intelligence Gathering}: Scanning with \texttt{nmap}.
+    \item \textbf{Threat Modeling}: Analysis of services (\textit{SSH}, \textit{nginx}, \textit{MySQL}).
+    \item \textbf{Vulnerability Analysis}: Manual and automated checks.
+    \item \textbf{Exploitability}: Validation of vulnerabilities.
+    \item \textbf{Post-Exploitation}: Impact analysis.
+    \item \textbf{Reporting}: Detailed documentation.
+\end{itemize}
+
+Tools such as \texttt{nmap}, \texttt{Burp Suite}, \texttt{Hydra}, and \texttt{Nessus} were used, complemented by manual verifications.
+
+\clearpage
+
+\section{Test Overview}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{lc}
+        \toprule
+        \rowcolor{gray!20} \textbf{Category} & \textbf{Quantity} \\
+        \midrule
+        Total Unique Vulnerabilities & 3 \\
+        Critical & 1 \\
+        High & 0 \\
+        Medium & 0 \\
+        Low & 2 \\
+        Informational & 0 \\ \hline
+        Zero-Day & 0 \\
+        Easily Exploitable & 1 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Project Scope}
+\begin{enumerate}
+    \item \texttt{192.168.2.50}
+    \item \texttt{192.168.2.34}
+\end{enumerate}
+
+\section{Enumeration}
+Active services were identified using \texttt{nmap} (\texttt{nmap -sV -A -Pn -p- -T4 <host>}):
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{lll}
+        \toprule
+        \rowcolor{gray!20} \textbf{Host} & \textbf{Port/Service} & \textbf{Details} \\
+        \midrule
+        \texttt{192.168.2.50} 
+            & 22/tcp: ssh & OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 \\
+            & 25/tcp: smtp & Postfix smtpd \\
+            & 80/tcp: http & Apache httpd 2.4.58 \\
+            & 143/tcp: imap & Dovecot imapd \\
+            & 993/tcp: ssl/imap & Dovecot imapd \\
+            & 10050/tcp: tcpwrapped & (Unidentified service) \\ \hline
+        \texttt{192.168.2.34} 
+            & 22/tcp: ssh & OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 \\
+            & 25/tcp: smtp & Postfix smtpd \\
+            & 80/tcp: http & Apache httpd 2.4.58 ((Ubuntu)) \\
+            & 139/tcp: netbios-ssn & Samba smbd 4 \\
+            & 445/tcp: netbios-ssn & Samba smbd 4 \\
+            & 3306/tcp: mysql & MySQL (unauthorized) \\
+            & 3389/tcp: ms-wbt-server & Microsoft Terminal Service \\
+            & 5900/tcp: vnc & VNC (protocol 3.8) \\
+            & 8200/tcp: http & Golang net/http server \\
+            & 9200/tcp: ssl/http & Amazon OpenSearch REST API (Basic auth) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Vulnerabilities}
+
+\subsection*{\color{BrickRed}Critical}
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Hard-Coded Weak Password} \\
+    Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+\end{itemize}
+
+\subsection*{\color{NavyBlue}Low}
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Server Discloses Software Version (SSH)} \\
+    Total affected assets: 2 -- Remediated: 0 -- Retested: 0 -- Not remediated: 2
+    \item \textbf{[NOT REMEDIATED] Server Discloses Software Version (HTTP - 80)} \\
+    Total affected assets: 2 -- Remediated: 0 -- Retested: 0 -- Not remediated: 2
+\end{itemize}
+
+\clearpage
+
+\section{Identified Vulnerabilities}
+
+\subsection{Hard-Coded Weak Password}
+\textbf{Severity:} \textcolor{BrickRed}{Critical} \\
+\textbf{Affected Asset:} \texttt{192.168.2.50} \\
+\textbf{CVSS v3.1:} 9.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N) \\
+\textbf{Reference:} CWE-798 – Use of Hard-coded Credentials, CWE-521: Weak Password Requirements
+
+\textbf{Description:}  
+It was identified that the application has hard-coded administrator credentials directly in the source code, with an extremely weak password (\texttt{admin:admin}). This practice represents a serious vulnerability, as it exposes sensitive information and facilitates unauthorized access to the system, especially in environments where the source code is accessible to users or attackers.
+
+\textbf{Attack Scenario:}  
+An attacker with access to the server (through prior exploitation or misconfigured permissions) examines the application directory files and finds administrator credentials embedded in the code. With this, they can:
+\begin{itemize}
+    \item Gain direct access to the application’s administrative interface (if operational).
+    \item Use the credentials in other interfaces or services reusing the same username/password pair.
+    \item Modify or exfiltrate sensitive data by exploiting administrative privileges.
+\end{itemize}
+This type of flaw represents a breach of basic security best practices and a violation of the principles of confidentiality and credential segregation.
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Remove hard-coded credentials:} Never include usernames or passwords directly in the source code.
+    \item \textbf{Use environment variables or vaults:} Store credentials securely outside the code.
+    \item \textbf{Enforce strong password policy:} Replace weak passwords with robust combinations of at least 12 characters, including letters, numbers, and symbols.
+    \item \textbf{Audit and control access to code:} Ensure only authorized users have access to the application directory.
+    \item \textbf{Periodic password rotation:} Implement policies for password expiration and rotation.
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Access the server or open a session with read permissions in the application directory: \texttt{/var/www/html/php}.
+    \item Locate the file with embedded credentials (\texttt{login.php}).
+    \item The weak and hard-coded password can be used for administrative authentication (if the system becomes operational again).
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{adminadmin.png}
+    \caption{Source code snippet exposing hard-coded credentials with a weak password.}
+\end{figure}
+
+\clearpage
+
+\subsection{Software Version Exposure}
+\textbf{Severity:} \textcolor{NavyBlue}{Low} \\
+\textbf{Affected Assets:} \texttt{192.168.2.50}, \texttt{192.168.2.34} \\
+\textbf{CVSS v3.1:} 3.7 (AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N) \\
+\textbf{References:} CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
+
+\subsubsection{SSH (Port 22)}
+\textbf{Description:}  
+The \texttt{OpenSSH} services on hosts \texttt{192.168.2.50} and \texttt{192.168.2.34} reveal the exact version (\texttt{OpenSSH 9.6p1 Ubuntu 3ubuntu13.11}) in the connection banner. This information allows attackers to identify public vulnerabilities associated with the specific version, facilitating targeted attacks.
+
+\textbf{Attack Scenario:}  
+An attacker uses \texttt{nmap} or \texttt{netcat} to capture the \texttt{SSH} banner (\texttt{SSH-2.0-OpenSSH\_9.6p1 Ubuntu-3ubuntu13.11}). With the version identified, they search vulnerability databases (e.g., CVE, Exploit-DB) for known issues, such as buffer overflows or authentication flaws. If an exploitable vulnerability exists, the attacker can:
+\begin{itemize}
+    \item Compromise the \texttt{SSH} service, gaining system access.
+    \item Execute remote code or escalate privileges.
+\end{itemize}
+This risk is higher if the \texttt{OpenSSH} version is outdated.
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Hide banner:} Configure \texttt{DebianBanner no} in the \texttt{/etc/ssh/sshd\_config} file and restart the service (\texttt{systemctl restart sshd}).
+    \item \textbf{Regular updates:} Keep \texttt{OpenSSH} updated with the latest security patches.
+    \item \textbf{Monitoring:} Log \texttt{SSH} connection attempts to detect malicious scans.
+    \item \textbf{Firewall:} Restrict access to port \texttt{22} to trusted IPs.
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Run \texttt{nc 192.168.2.50 22} to capture the \texttt{SSH} banner.
+    \item Observe the response: \texttt{SSH-2.0-OpenSSH\_9.6p1 Ubuntu-3ubuntu13.11}.
+    \item Search for vulnerabilities associated with the version in \texttt{Exploit-DB}.
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{SSH-BANNER4.png}
+    \caption{SSH banner revealing the OpenSSH version.}
+\end{figure}
+
+\subsubsection{HTTP (Port 80 - Apache)}
+\textbf{Description:}  
+The \texttt{Apache} server on port \texttt{80} of hosts \texttt{192.168.2.50} and \texttt{192.168.2.34} exposes its version (\texttt{Apache/2.4.58}) in the HTTP \texttt{Server} header. This information can be used by attackers to identify known vulnerabilities associated with the specific version.
+
+\textbf{Attack Scenario:}  
+An attacker uses \texttt{curl -I http://192.168.2.50} to capture the \texttt{Server: Apache/2.4.58} header. With the version identified, they query vulnerability databases (e.g., CVE) for public exploits, such as configuration flaws or denial-of-service vulnerabilities. The attacker can:
+\begin{itemize}
+    \item Exploit a known flaw to compromise the web server.
+    \item Perform additional reconnaissance based on the identified version.
+\end{itemize}
+
+\textbf{Recommendations:}  
+\begin{itemize}
+    \item \textbf{Hide version:} Configure the \texttt{ServerTokens Prod} and \texttt{ServerSignature Off} directives in the \texttt{/etc/apache2/apache2.conf} file or equivalent, and restart the service with \texttt{systemctl restart apache2}.
+    \item \textbf{Updates:} Keep \texttt{Apache httpd} updated to the latest stable version available in the distribution’s repository.
+    \item \textbf{Secure headers:} Add security headers such as \texttt{X-Content-Type-Options "nosniff"}, \texttt{X-Frame-Options "DENY"}, and \texttt{Content-Security-Policy} using the \texttt{mod\_headers} module.
+\end{itemize}
+
+\textbf{Proof of Concept (PoC):}  
+\begin{enumerate}
+    \item Run \texttt{curl -I http://192.168.2.50}.
+    \item Observe the \texttt{Server: Apache/2.4.58} header.
+\end{enumerate}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{apache3.png}
+    \caption{HTTP header exposing the Apache version.}
+\end{figure}
+
+\clearpage
+
+\section{Conclusion}
+
+The penetration test conducted on the assets \texttt{192.168.2.50} and \texttt{192.168.2.34} revealed critical vulnerabilities that compromise the security of the infrastructure. Notably, the use of hard-coded credentials with a weak administrative password represents a severe protection failure. Additionally, the exposure of SSH and Apache service versions was identified, facilitating environmental reconnaissance by potential attackers and increasing the attack surface.
+
+These flaws highlight the urgent need to implement strict controls for credential management, concealment of sensitive information, and continuous service updates to mitigate risks and strengthen the network’s security posture.
+
+\section{Appendices}
+
+\subsection{General Definitions}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{lp{8cm}}
+        \toprule
+        \rowcolor{gray!20} \textbf{Term} & \textbf{Description} \\
+        \midrule
+        Total Unique Vulnerabilities & Distinct vulnerabilities identified within the scope. \\ \hline
+        Zero-Day Vulnerability & Flaw unknown to the vendor, exploitable before patches are available. \\ \hline
+        Easily Exploitable Vulnerability & Flaws detectable by automated tools or with public exploits. \\ \hline
+        Critical Vulnerability & High impact on confidentiality, integrity, or availability. \\ \hline
+        High Vulnerability & Requires immediate attention due to potential impact. \\ \hline
+        Medium Vulnerability & Less urgent but can cause serious issues. \\ \hline
+        Low Vulnerability & Not imminent but should be mitigated in the long term. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Definitions of terms used in the report.}
+\end{table}
+
+\clearpage
+
+\subsection{Severity Levels}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{lp{10cm}}
+        \toprule
+        \rowcolor{gray!20} \textbf{Level} & \textbf{Description} \\
+        \midrule
+        \textcolor{BrickRed}{Critical} & CVSS 9.0–10.0: High probability and impact. \\
+        \textcolor{Red}{High} & CVSS 7.0–8.9: Medium to high probability and impact. \\
+        \textcolor{Orange}{Medium} & CVSS 4.0–6.9: Low to medium probability or impact. \\
+        \textcolor{NavyBlue}{Low} & CVSS 0.1–3.9: Low probability and impact. \\
+        \textcolor{Periwinkle}{Informational} & No direct impact but provides useful information. \\
+        \bottomrule
+    \end{tabular}
+    \caption{Severity levels of vulnerabilities.}
+\end{table}
+
+\subsection{Vulnerability Mapping by Asset}
+
+\textbf{Asset: \texttt{192.168.2.50}}  
+\begin{itemize}
+    \item \textcolor{BrickRed}{Critical}: Hard-Coded Weak Password.
+    \item \textcolor{NavyBlue}{Low}: Service version exposure (\texttt{OpenSSH}, \texttt{Apache}).
+\end{itemize}
+
+\textbf{Asset: \texttt{192.168.2.34}}  
+\begin{itemize}
+    \item \textcolor{NavyBlue}{Low}: Service version exposure (\texttt{OpenSSH}, \texttt{Apache}).
+\end{itemize}
+
+\subsection{Tools Used}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{ll}
+        \toprule
+        \rowcolor{gray!20} \textbf{Purpose} & \textbf{Tool} \\
+        \midrule
+        Network mapping and scanning & Nmap \\
+        SMTP server testing & Swaks \\
+        Communication and port testing & Netcat \\
+        Brute force attacks & Hydra \\
+        Vulnerability analysis & Nessus \\
+        Web vulnerability analysis & SkipFish, Nikto, Gobuster \\ & Burp Suite, XSStrike, SQLMap \\
+        Exploitation and post-exploitation & Metasploit \\
+        Privilege escalation & LinPEAS \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\end{document}

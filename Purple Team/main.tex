@@ -1,0 +1,244 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue}
+\usepackage[table]{xcolor}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{sectsty}
+\sectionfont{\large\bfseries}
+\subsectionfont{\normalsize\bfseries}
+\usepackage{tocloft}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\usepackage{parskip}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhead[L]{Purple Team}
+\fancyhead[R]{May 23, 2025}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\Huge\bfseries Purple Team Report\par}
+    \vspace{1cm}
+    {\Large Date: June 16, 2025\par}
+    \vspace{0.5cm}
+    {\large\bfseries CONFIDENTIAL INFORMATION\par}
+    \vspace{2cm}
+    {\large Bernardo Walker Leichtweis \\ Enzzo Machado Silvino \\ Cassio Vieceli Filho\par}
+\end{titlepage}
+
+\tableofcontents
+\clearpage
+
+\section{Executive Summary}
+
+This report presents the security vulnerabilities identified in the assets of the internal network and the DMZ, focusing on the hosts \textbf{192.168.8.34} (internal network) and \textbf{192.168.8.50} (DMZ). The analyses were conducted by \textbf{seven distinct groups} during \textit{Graybox} penetration tests, with access to the environment as the test user: \texttt{cebolinha:c3b0l1nh4}.
+
+The detected vulnerabilities were classified according to their severity and potential risk to the confidentiality, integrity, and availability of the evaluated assets.
+
+The purpose of this report is to summarize the findings, prioritize the issues based on their criticality, and recommend corrective measures to mitigate the risks.
+
+\subsection{Scope}
+
+The assessment covers the following network assets:
+
+\begin{itemize}
+    \item \textbf{192.168.8.34} -- Host located in the \textbf{internal network}
+    \item \textbf{192.168.8.50} -- Host located in the \textbf{DMZ}
+\end{itemize}
+
+\subsection{Vulnerability Summary}
+
+A total of \textbf{4 unique vulnerabilities} were identified, categorized according to the severity levels presented below:
+
+\begin{itemize}[label=--]
+    \item \textbf{1 Critical vulnerability}
+    \item \textbf{1 High vulnerability}
+    \item \textbf{2 Low vulnerabilities}
+\end{itemize}
+
+\clearpage
+
+\section{Vulnerabilities}
+
+\subsection{\color{BrickRed}Critical}
+
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Unauthorized access to the backup service password} \\
+          Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+\end{itemize}
+
+\subsection{\color{Red}High}
+
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Improperly exposed services} \\
+          Total affected assets: 2 -- Remediated: 0 -- Retested: 0 -- Not remediated: 2
+\end{itemize}
+
+\subsection{\color{NavyBlue}Low}
+
+\begin{itemize}
+    \item \textbf{[NOT REMEDIATED] Exposed SSH version (OpenSSH\_9.6.p1)} \\
+          Total affected assets: 2 -- Remediated: 0 -- Retested: 0 -- Not remediated: 2
+    \item \textbf{[NOT REMEDIATED] Exposed Nginx version (1.27.4)} \\
+          Total affected assets: 1 -- Remediated: 0 -- Retested: 0 -- Not remediated: 1
+\end{itemize}
+
+\clearpage
+
+\section{Identified Vulnerabilities}
+
+\subsection{Unauthorized Access to the Backup Service Password}
+\textbf{Severity:} \textcolor{BrickRed}{Critical} \\
+\textbf{Affected Asset:} \texttt{192.168.8.34} (internal network) \\
+\textbf{CVSS v3.1:} 9.1 (AV:L/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H) \\
+\textbf{Reference:} CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
+
+\textbf{Description:}  
+It was identified that the test user can read the backup service password stored in the \texttt{/etc/restic/pass} file on the host \texttt{192.168.8.34}. This represents a critical flaw as it exposes sensitive credentials, potentially allowing complete compromise of the backup service and possible privilege escalation.
+
+\textbf{Recommended Fix:}  
+Change the permissions of the \texttt{/etc/restic/pass} file to \texttt{chmod 600}, ensuring that only the backup service owner has read and write permissions. Additionally, evaluate the use of password vaults (such as HashiCorp Vault) for secure storage of these credentials. Review access control policies to prevent exposure of sensitive files in the system.
+
+\vspace{1cm}
+
+\subsection{Improperly Exposed Services in the DMZ and Internal Network}
+\textbf{Severity:} \textcolor{Red}{High} \\
+\textbf{Affected Assets:} \texttt{192.168.8.50} (DMZ), \texttt{192.168.8.34} (internal network) \\
+\textbf{CVSS v3.1:} 7.5 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N) \\
+\textbf{Reference:} CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
+
+\textbf{Description:}  
+Services are exposed in both the DMZ and the internal network, allowing any attacker to perform port scans and identify open services in both environments. This configuration expands the attack surface and may facilitate reconnaissance and exploitation of subsequent vulnerabilities.
+
+\textbf{Recommended Fix:}  
+Conduct a thorough review of firewall rules and routing policies, blocking unauthorized access from the WAN to the internal network and the DMZ. Allow only essential ports to be open to the external public, such as 80 (HTTP) and 443 (HTTPS) in the DMZ.
+
+\vspace{1cm}
+
+\subsection{Exposed SSH Version}
+\textbf{Severity:} \textcolor{NavyBlue}{Low} \\
+\textbf{Affected Assets:} \texttt{192.168.8.34}:2222, \texttt{192.168.8.50}:22 \\
+\textbf{CVSS v3.1:} 3.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N) \\
+\textbf{Reference:} CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
+
+\textbf{Description:}  
+The OpenSSH \texttt{9.6.p1} versions are exposed via banners in the SSH services accessible on the internal network and DMZ hosts. While not a direct vulnerability, this exposure can assist attackers in reconnaissance and planning specific attacks.
+
+\textbf{Recommended Fix:}  
+Modify the SSH configuration to hide the version banner. This can be done by editing the \texttt{/etc/ssh/sshd\_config} file and setting the \texttt{DebianBanner no} option. Restart the SSH service after the change to apply the configuration.
+
+\vspace{1cm}
+
+\subsection{Exposed Nginx Version}
+\textbf{Severity:} \textcolor{NavyBlue}{Low} \\
+\textbf{Affected Asset:} \texttt{192.168.8.50}:8080 (DMZ) \\
+\textbf{CVSS v3.1:} 3.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N) \\
+\textbf{Reference:} CWE-200: Exposure of Sensitive Information to an Unauthorized Actor
+
+\textbf{Description:}  
+The Nginx \texttt{1.27.4} version is exposed on the DMZ host, identified during the port scan. Exposing the HTTP server version can provide useful information to potential attackers.
+
+\textbf{Recommended Fix:}  
+Modify the Nginx configuration file (\texttt{nginx.conf}) to disable the \texttt{Server} header. For example, add the \texttt{server\_tokens off;} directive in the \texttt{http} or \texttt{server} block. After the change, restart the Nginx service to apply the configuration.
+
+\vspace{1cm}
+
+\clearpage
+
+\section{Observations}
+
+During the analysis and consolidation of the security test results, some reported vulnerabilities were disregarded for the following reasons:
+
+\begin{itemize}
+    \item \textbf{Vulnerabilities not considered:} Examples include access to the \texttt{/admin} path in the \textit{mailcow} service, which did not configure any flaw beyond the expected standard access and does not represent a vulnerability in itself, as well as the read permission for the test user in the \texttt{/var/www/html} directory, given that there is no exposure of credentials, \texttt{.env} files, or \texttt{.git} directories.
+
+    \item \textbf{Vulnerabilities categorized under other sections:} For example, the exposure of the \textit{Wazuh} page on the internal network was considered part of the \textit{Improperly Exposed Services} vulnerability, avoiding redundancies in the report.
+
+    \item \textbf{Items outside the scope or control:} Self-signed SSL/TLS certificates were reported; however, as per the proposed scenario, this configuration could not be altered and was therefore not treated as a vulnerability.
+
+    \item \textbf{Vulnerabilities with insufficient description or lack of evidence:} Some reports, such as the one from G9 mentioning \textit{Sessions Vulnerable to XSS}, did not provide concrete evidence or sufficient technical details for validation and were discarded in this report.
+\end{itemize}
+
+This approach aims to ensure accuracy, relevance, and focus on resolving vulnerabilities that directly impact the security of the tested environment.
+
+\section{Conclusion}
+
+This report presents the vulnerabilities identified during security tests conducted in a controlled environment with test user access, as defined in the scope. Critical, high, and low severity flaws were detected, collectively indicating significant opportunities to enhance the infrastructure's security.
+
+Critical vulnerabilities, such as unauthorized access to sensitive passwords, require immediate attention due to the high risk of complete compromise of the involved services. The improper exposure of services in both the DMZ and the internal network also represents a concerning attack vector that must be mitigated through stricter firewall rules and proper segmentation.
+
+Additionally, low-severity vulnerabilities, such as the exposure of service versions, while not direct risks, provide information that could facilitate future attacks and should therefore be addressed to strengthen the security posture.
+
+The recommendations provided in this report include clear and practical corrective actions that, if implemented effectively, will significantly reduce the attack surface and improve the environment's resilience against threats.
+
+\clearpage
+
+\section{Suggested Action Plan}
+
+\begin{table}[H]
+\centering
+\rowcolors{1}{gray!10}{white}
+\begin{tabular}{p{5cm}p{1.9cm}p{2.9cm}p{4cm}p{4.1cm}}
+\toprule
+\textbf{Vulnerability} & \textbf{Severity} & \textbf{Maximum Deadline} & \textbf{Responsible} \\
+\midrule
+Access to the backup service password & Critical & 24h (until 06/17) & Infrastructure Team \\
+Improperly exposed services & High & 72h (until 06/19) & Network Administrator \\
+Exposed SSH version & Low & Until 06/21 & Linux Sysadmin \\
+Exposed Nginx version & Low & Until 06/21 & DevOps / Web \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Appendices}
+
+\subsection{General Definitions}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lp{8cm}}
+        \toprule
+        \rowcolor{gray!20} \textbf{Term} & \textbf{Description} \\
+        \midrule
+        Total Unique Vulnerabilities & Distinct vulnerabilities identified within the scope. \\ 
+        Zero-Day Vulnerability & Flaw unknown to the vendor, exploitable before patches are available. \\
+        Critical Vulnerability & High impact on confidentiality, integrity, or availability. \\
+        High Vulnerability & Requires immediate attention due to potential impact. \\
+        Medium Vulnerability & Less urgent but can cause serious issues. \\
+        Low Vulnerability & Not imminent but should be mitigated in the long term. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Severity Levels}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lp{10cm}}
+        \toprule
+        \rowcolor{gray!20} \textbf{Level} & \textbf{Description} \\
+        \midrule
+        \textcolor{BrickRed}{Critical} & CVSS 9.0–10.0: High probability and impact. \\
+        \textcolor{Red}{High} & CVSS 7.0–8.9: Medium to high probability and impact. \\
+        \textcolor{Orange}{Medium} & CVSS 4.0–6.9: Low to medium probability or impact. \\
+        \textcolor{NavyBlue}{Low} & CVSS 0.1–3.9: Low probability and impact. \\
+        \textcolor{Periwinkle}{Informational} & No direct impact but provides useful information. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\end{document}
