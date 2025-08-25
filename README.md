@@ -5,7 +5,7 @@ Este repositório contém os documentos e entregáveis de um projeto de ciberseg
 ---
 
 ## 📂 Estrutura do Projeto
-
+```
 A estrutura de arquivos deste repositório está organizada da seguinte forma:
 ├── Blue Team
 │   ├── architecture.png            # Diagrama da arquitetura (Excalidraw)
@@ -25,7 +25,7 @@ A estrutura de arquivos deste repositório está organizada da seguinte forma:
 └── Purple Team
 ├── PurpleTeam_Report.pdf       # Relatório com propostas de melhoria
 └── main.tex                    # Código fonte LaTeX (Purple Team)
-
+```
 ---
 
 ## 🎯 Dinâmica do Projeto
