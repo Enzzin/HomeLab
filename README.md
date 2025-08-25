@@ -1,4 +1,4 @@
-# 🛡️ Projeto Blue Team vs. Red Team ⚔️
+# 🛡️ Projeto Home Lab ⚔️
 
 Este repositório contém os documentos e entregáveis de um projeto de cibersegurança que envolveu atividades de **Blue Team**, **Red Team** e **Purple Team**. O projeto simulou um cenário real onde as equipes configuraram ambientes de rede seguros, realizaram testes de invasão e, por fim, propuseram melhorias.
 
